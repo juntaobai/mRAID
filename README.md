@@ -1,4 +1,4 @@
-**mRAID (multi-beam RAdio frequency Interference Detector)**
+#___mRAID (multi-beam RAdio frequency Interference Detector)___
 
 RFI codes for the multibeam system in general (or cryoPAF)
 
