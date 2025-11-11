@@ -4,7 +4,7 @@
 # File      : rfi_covariance.py
 # Author    : Shi Dai and Juntao Bai
 # Created   : 2025-11-10
-# License   : MIT License
+# License   : GPL v3 License
 # -----------------------------------------------------------------------------
 # Description :
 #   This program constructs covariance matrices, performs eigen-decomposition.
