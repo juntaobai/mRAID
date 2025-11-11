@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# =============================================================================
+# File      : read_psrfits.py
+# Author    : Shi Dai and Juntao Bai
+# Created   : 2025-11-10
+# License   : MIT License
+# -----------------------------------------------------------------------------
+# Description :
+#   This program reads PSRFITS search-mode data.
+# =============================================================================
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
@@ -10,11 +21,14 @@ from scipy.sparse.linalg import spsolve
 
 
 class read_fits ():
-        def __init__ (self, filenames, sub0=0, sub1=32, freq0=0, freq1=0):
+        def __init__ (self, filenames, sub0=0, sub1=40, freq0=0, freq1=0, downsamp=1, lam=1e3, ratio=0.005, itermax=35):
                 self.filenames = filenames
                 self.sub0 = sub0
                 self.sub1 = sub1
-                self.time = int(1)
+                self.downsamp = downsamp
+                self.lam = lam
+                self.ratio = ratio
+                self.itermax = itermax
 
                 self.nbeam = len(filenames)
 
@@ -45,27 +59,29 @@ class read_fits ():
                         self.freq_mask = (self.dat_freq > freq0) & (self.dat_freq < freq1)
                         print(self.freq_mask, len(self.freq_mask), type(self.freq_mask))
                 #np.save('freq_mask.npy', self.freq_mask )
-                self.new_nchan = np.sum(self.freq_mask)
+                self.use_nchan = np.sum(self.freq_mask)
                 self.dat_freq = self.dat_freq[self.freq_mask]
+                #np.save('dat_freq.npy', self.dat_freq)
+                np.save('freq_mask.npy', self.freq_mask)
 
                 if self.sub0 == 0 and self.sub1 == 0:
                         self.nsamp = self.nsub*self.nsblk
-                        self.nbarray = np.empty((self.nbeam, self.nsblk*self.nsub/self.time, self.new_nchan))
+                        self.nbarray = np.empty((self.nbeam, self.nsblk*self.nsub/self.downsamp, self.use_nchan))
                 else:
                         self.nsamp = (self.sub1-self.sub0)*self.nsblk
-                        self.nbarray = np.empty((self.nbeam, int(self.nsblk*(self.sub1-self.sub0)/self.time), self.new_nchan))
+                        self.nbarray = np.empty((self.nbeam, int(self.nsblk*(self.sub1-self.sub0)/self.downsamp), self.use_nchan))
 
-        def ArPLS(self, y, lam=1e5, ratio=0.005, itermax=35):
+        def ArPLS(self, y):
             N = len(y)
             D = sparse.eye(N, format='csc')
             D = D[1:] - D[:-1]
             D = D[1:] - D[:-1]
             D = D.T
             w = np.ones(N)
-            lam = lam * np.ones(N)
-            for i in range(itermax):
+            self.lam = self.lam * np.ones(N)
+            for i in range(self.itermax):
                     W = sparse.diags(w, 0, shape=(N, N))
-                    LAM = sparse.diags(lam, 0, shape=(N, N))
+                    LAM = sparse.diags(self.lam, 0, shape=(N, N))
                     Z = W + LAM * D.dot(D.T)
                     z = spsolve(Z, w * y)
                     d = y - z
@@ -73,8 +89,8 @@ class read_fits ():
                     m = np.mean(dn)
                     s = np.std(dn)
                     wt = 1. / (1 + np.exp(2 * (d - (2 * s - m)) / s))
-                    #lam = lam * (1-wt)
-                    if np.linalg.norm(w - wt) / np.linalg.norm(w) < ratio:
+                    #self.lam = self.lam * (1-wt)
+                    if np.linalg.norm(w - wt) / np.linalg.norm(w) < self.ratio:
                         break
                     w = wt
             return z
@@ -93,7 +109,7 @@ class read_fits ():
                         tbdata = hdulist['SUBINT'].data
                         hdulist.close()
                         #print ('Read in data...')
-                        #print ('{0} nsub:{1} nsblk:{2} nbits:{3} nchan:{4}'.format(self.filenames[i], self.nsub, self.nsblk, self.nbits, self.new_nchan))
+                        #print ('{0} nsub:{1} nsblk:{2} nbits:{3} nchan:{4}'.format(self.filenames[i], self.nsub, self.nsblk, self.nbits, self.use_nchan))
 
                         if self.sub0 == 0 and self.sub1 == 0:
                                 data = np.squeeze(tbdata['DATA'])
@@ -103,7 +119,7 @@ class read_fits ():
                                 data = np.reshape(data, ((self.sub1-self.sub0)*self.nsblk, self.npol, int(self.nchan/(8/self.nbits))))   
                                 data = (data[:,0,:]+data[:,1,:]).squeeze()  
                                 data = data[:, self.freq_mask]
-                                data = data.reshape(int((self.sub1-self.sub0)*self.nsblk/self.time), self.time, self.new_nchan).mean(axis=1)
+                                data = data.reshape(int((self.sub1-self.sub0)*self.nsblk/self.downsamp), self.downsamp, self.use_nchan).mean(axis=1)
                                 data = data.astype(np.float64)
                                 data = self.baseline_ArPLS(data)
                                 data = data.astype(np.float64)
@@ -156,18 +172,19 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser(description='Read PSRFITS format search mode data')
         parser.add_argument('-f',  '--input_file',  metavar='Input file name', nargs='+',  required=True, help='Input file name')
         parser.add_argument('-sub0',  '--subband_start', metavar='Starting subband', required=True, help='Starting subband')
-        parser.add_argument('-sub1',  '--subband_end', metavar='Ending subband',  required=True, help='Ending subband')
-        #parser.add_argument('-t',  '--time_factor', metavar='Time factor',  required=True, help='Time factor')
+        parser.add_argument('-sub1',  '--subband_end', metavar='Ending subband', required=True, help='Ending subband')
+        parser.add_argument('-downsamp',  '--down_sample', metavar='Down sample', default = 1, type = int, help='Down sample')
+        parser.add_argument('-arpls', '--arpls_par', metavar='ArPLS parameters (lam ratio itermax)', nargs=3, default=[1e3, 0.005, 35], type=float, help='ArPLS parameters (lam ratio itermax)')
 
         args = parser.parse_args()
         sub_start = int(args.subband_start[0])
         sub_end = int(args.subband_end[0])
-        #time = int(args.time_factor)
-        #dm = float(args.chn_dm[0])
+        downsamp = int(args.down_sample)
+        lam, ratio, itermax = args.arpls_par
         infile = args.input_file
 
-        srch = read_fits (infile, sub_start, sub_end)
-        #print("dat_freq:", self.dat_freq)
+        srch = read_fits(filenames=infile, sub0=sub_start, sub1=sub_end, downsamp=downsamp, lam=lam, ratio=ratio, itermax=int(itermax))
         srch.read_data()
 
         #srch.plot_bandpass(0)
+

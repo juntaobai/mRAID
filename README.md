@@ -1,8 +1,14 @@
-# mRAID_rfi
-RFI codes for the multibeam system
+mRAID (multi-beam RAdio frequency Interference Detector)
+
+RFI codes for the multibeam system in general (or cryoPAF)
+
+Code written by Shi Dai and Juntao Bai.
+
+See paper with the description of the concept at: 
+
 
 Examples:
 
-python run_rfi.py -f *.fits -step 32 -freq 1050 1450 -sig 3.0 -nsub 8192 -cpu 10 -o test.h5
+python run_rfi.py -f *.fits -step 20 -freq 1050 1450 -nsub 1000 -cpu 5 -o test.h5
 
-python create_mask.py -nsub 8192 -nchn 4096 -new_nchn 3277 -nbeam 19 -step 32 -sig 3.0 -fh5 test.h5 -f *.fits
+python create_mask.py -f *.fits -fh5 test.h5 -nsub 1000 -nbeam 19 -step 20 -sig_val 3 -sig_vec 1 
