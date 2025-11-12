@@ -21,7 +21,6 @@ from decimal import Decimal
 from scipy.optimize import curve_fit
 import h5py
 
-##########################
 
 class eig():
         def __init__(self, filenames, hdf5_filename, nsub, sub_step, nbeam, sigma_eigval=3, sigma_eigvec=1, ignorchan_start=0, ignorchan_end=0):
