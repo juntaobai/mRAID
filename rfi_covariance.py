@@ -29,7 +29,8 @@ from read_psrfits import read_fits
 
 
 class ccm (read_fits):
-        def __init__(self, filenames, sub0=0, sub1=0, freq0=0, freq1=0, sigma_val=3, sigma_vec=1, downsamp=1, normal_base_start=2600, normal_base_end=2800, lam=1e3, ratio=0.005, itermax=35):
+        def __init__(self, filenames, sub0=0, sub1=0, freq0=0, freq1=0, sigma_val=3, sigma_vec=1, 
+            downsamp=1, normal_base_start=2600, normal_base_end=2800, lam=1e3, ratio=0.005, itermax=35):
                 print ('Initialising a multi-beam object\n')
                 super().__init__(filenames=filenames, sub0=sub0, sub1=sub1, freq0=freq0, freq1=freq1, downsamp=downsamp, lam=lam, ratio=ratio, itermax=itermax)
                 self.sig_val = sigma_val
@@ -43,8 +44,8 @@ class ccm (read_fits):
 
         def normalise (self):
                 for i in range(self.nbeam):
-                        std = np.std(self.nbarray[i,:,normal_base_start:normal_base_end])
-                        mean = np.mean(self.nbarray[i,:,normal_base_start:normal_base_end])
+                        std = np.std(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])
+                        mean = np.mean(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])
                         self.nbarray[i,:,:] = (self.nbarray[i,:,:] - mean)/std
 
         def cal_ccm (self):
@@ -244,7 +245,7 @@ class ccm (read_fits):
                 print("Mean and Sigma per beam:", evc_mean, evc_sigma)
                 return evc_mean, evc_sigma
 
-        def generate_mask (self, chn, base):
+        def generate_mask (self):
                 evc_mean, evc_sigma = self.cal_evc_Threshold()
                 self.rfi_mask = np.ones((self.use_nchan, self.nbeam))
                 for i in range(self.use_nchan):
@@ -290,7 +291,7 @@ if __name__ == "__main__":
         #rc('text', usetex=True)
         # read in parameters
 
-        parser = argparse.ArgumentParser(description='Read PSRFITS format search mode data')
+        parser = argparse.ArgumentParser(description='Constructs covariance matrices, performs eigen-decomposition')
         parser.add_argument('-f',  '--input_file',  metavar='Input file name',  nargs='+', required=True, help='Input file name')
         parser.add_argument('-sub',  '--subband_range', metavar='Subint ragne', nargs='+', default = [0, 0], type = int, help='Subint range')
         parser.add_argument('-freq',  '--freq_range', metavar='Freq range (MHz)', nargs='+', default = [0, 0], type = int, help='Frequency range (MHz)')
@@ -314,21 +315,29 @@ if __name__ == "__main__":
         infile = args.input_file
 
         #read_data (infile[0], sub_start, sub_end)
-        mb_ccm = ccm (filenames=infile, sub0=sub_start, sub1=sub_end, freq0=freq_start, freq1=freq_end, sigma_val=sigma_val, sigma_vec=sigma_vec, downsamp=downsamp, normal_base_start=normal_base_start, normal_base_end=normal_base_end, lam=lam, ratio=ratio, itermax=int(itermax))
+        mb_ccm = ccm (
+            filenames=infile, 
+            sub0=sub_start, sub1=sub_end, 
+            freq0=freq_start, freq1=freq_end, 
+            sigma_val=sigma_val, sigma_vec=sigma_vec, 
+            downsamp=downsamp, 
+            normal_base_start=normal_base_start, 
+            normal_base_end=normal_base_end, 
+            lam=lam, ratio=ratio, itermax=int(itermax))
         mb_ccm.read_data()
-        #mb_ccm.normalise(base=[2600,2800])
+        mb_ccm.normalise()
 
-        #mb_ccm.plot_data(xr=[0,4096], xtick=400)
+        mb_ccm.plot_data(xr=[0,4096], xtick=400)
         ##mb_ccm.sim_ccm() # instead of reading in data, simulate
         ##print (mb_ccm.ccm.shape)
 
         ##mb_ccm.plot_bandpass()
-        #mb_ccm.cal_ccm()
+        mb_ccm.cal_ccm()
 
-        #mb_ccm.plot_ccm(360)
-        #mb_ccm.cal_eigen()
+        mb_ccm.plot_ccm(360)
+        mb_ccm.cal_eigen()
 
         #mb_ccm.generate_filter(xlim=[-10,4100],xtick=400)
-        #mb_ccm.generate_mask(chn=4096, base=[2600,2800])
+        #mb_ccm.generate_mask()
         ##mb_ccm.plot_spec (xr=[330,350], xtick=10)
         #mb_ccm.plot_spec (xr=[1000,1600], xtick=200)
