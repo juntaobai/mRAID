@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # =============================================================================
-# File      : run_rfi.py
+# File      : create_mask.py
 # Author    : Shi Dai and Juntao Bai
 # Created   : 2025-11-10
 # License   : GPL v3 License
@@ -11,6 +11,7 @@
 # =============================================================================
 import math
 import numpy as np
+import glob, os
 import numpy.ma as ma
 from numpy import linalg as la
 import matplotlib.pyplot as plt
@@ -54,9 +55,22 @@ class eig():
 
                 self.chan_array[:, :, :] = np.arange(self.use_nchan)[None, :, None]
 
-                with h5py.File(self.hdf5_filename, 'r') as hdf5_file:
-                        self.eigval_array = ma.masked_array(hdf5_file['eigval'][:]) 
-                        self.eigvec_array = ma.masked_array(hdf5_file['eigvec'][:]) 
+                base_prefix = os.path.splitext(self.hdf5_filename)[0]
+                part_files = sorted(glob.glob(f"{base_prefix}_part*.h5"))
+                if len(part_files) == 0:
+                        part_files = [self.hdf5_filename]
+                        print(f"Reading single HDF5 file: {self.hdf5_filename}")
+                else:
+                        print(f"Reading {len(part_files)} part HDF5 files...")
+
+                for i, pf in enumerate(part_files):
+                        with h5py.File(pf, 'r') as hdf:
+                                self.eigval_array[i, :] = hdf['eigval'][:]
+                                self.eigvec_array[i, :, :] = hdf['eigvec'][:]
+                print(f"Combined eigval shape: {self.eigval_array.shape}")
+                print(f"Combined eigvec shape: {self.eigvec_array.shape}")
+
+                self.plot_prefix = base_prefix
 
         def gaussian(self, x, a, mean, sigma):
                 return a * np.exp(-(x - mean) ** 2 / (2 * sigma ** 2))
@@ -72,7 +86,7 @@ class eig():
                 ax.set_ylabel(f"Subinterval", fontsize=14)
                 start_x = int((self.nchan-self.use_nchan)/2)
                 ax.set_xticks(np.arange(0, self.use_nchan, 500), np.arange(start_x, self.use_nchan+start_x, 500))
-                plt.savefig(f'{hdf5_filename}_plot_eigval.png')
+                plt.savefig(f'{self.plot_prefix}_plot_eigval.png')
                 
 
         def generate_filter (self):
@@ -157,7 +171,7 @@ class eig():
                 ax.set_ylabel(f"Subinterval", fontsize=14)
                 start_x = int((self.nchan-self.use_nchan)/2)
                 ax.set_xticks(np.arange(0, self.use_nchan, 500), np.arange(start_x, self.use_nchan+start_x, 500))
-                plt.savefig(f'{hdf5_filename}_plot_eigval_masked.png')
+                plt.savefig(f'{self.plot_prefix}_plot_eigval_masked.png')
                 
                 init_mask = np.moveaxis(np.array(self.nbeam*[eig_mask]), 0, -1)  
                 for j in range(self.npart):
@@ -212,7 +226,7 @@ class eig():
                         print(beam_id, num_zeros, num_ones, num_zeros + num_ones, (num_zeros - countt)/ (num_zeros + num_ones - countt) )
                         i += 1
 
-                plt.savefig(f'{hdf5_filename}_plot_eigvec_masked.png')
+                plt.savefig(f'{self.plot_prefix}_plot_eigvec_masked.png')
 
         ### generate the mask file
         def write_mask(self):
@@ -265,7 +279,7 @@ class eig():
                                 nzap_per_int.append(nzap)
                                 tozap.append(index_rfi)
                         nzap_per_int = np.array(nzap_per_int).astype(np.int32)
-                        maskfile = basename[beam_id] +'_mRAID.mask'      ### 
+                        maskfile = basename[beam_id] +'_mRAID.mask'      #The name of the generated file can be changed as needed
                         f = open(maskfile,'wb+')
                         f.write(time_sig)
                         f.write(freq_sig)
@@ -300,7 +314,7 @@ class eig():
                         ptsperint = np.int32(ptsperint)
                         sf = self.all_rfi_mask[:,:,beam_id]
                         sf = sf.astype('float64')
-                        statsfile = basename[beam_id] +'_mRAID.stats'
+                        statsfile = basename[beam_id] +'_mRAID.stats'      #The name of the generated file can be changed as needed
                         f = open(statsfile,'wb+')
                         f.write(nchan)
                         f.write(nint)
@@ -312,14 +326,13 @@ class eig():
 
 ##########################
 if __name__ == "__main__":
-        parser = argparse.ArgumentParser(description='Read PSRFITS format search mode data')
-
+        parser = argparse.ArgumentParser(description='Generates RFI masks for each beam')
         parser.add_argument('-nsub', '--nsubint', metavar='Total num of subint', default=8192, type=int, help='Total number of subint')
         parser.add_argument('-nbeam', '--nbeam', metavar='Total num of beam', default=19, type=int, help='Total number of beam')
         parser.add_argument('-step', '--sub_step', metavar='Step in subintegration', default=40, type=int, help='Step in subintegration')
         parser.add_argument('-sig_val', '--sigma_eigval', metavar='Eigenvalue threshold', default=3.0, type=int, help='Masking threshold')
         parser.add_argument('-sig_vec', '--sigma_eigvec', metavar='Eigenvector threshold', default=1.0, type=int, help='Masking threshold')
-        parser.add_argument('-fh5', '--input_hdf5_file', metavar='Input HDF5 file name', default='./source_10.h5', help='Input HDF5 file name')
+        parser.add_argument('-fh5', '--input_hdf5_file', metavar='Input HDF5 file name', default='mRAID.h5', help='Input HDF5 file name')
         parser.add_argument('-f',  '--input_file',  metavar='Input file name',  nargs='+', default = [], help='Input file name')
         parser.add_argument('-ignorechan', '--ignorechan', metavar='Ignore channel range', nargs='+', default = [0, 0], type = int, help='Ignore channel range')
 
@@ -334,7 +347,16 @@ if __name__ == "__main__":
         ignorchan_start = int(args.ignorechan[0])
         ignorchan_end = int(args.ignorechan[1])
 
-        eig = eig( filenames=filenames, hdf5_filename=hdf5_filename, sub_step=sub_step, nsub=nsub, nbeam=nbeam, sigma_eigval=sigma_eigval, sigma_eigvec=sigma_eigvec, ignorchan_start=ignorchan_start, ignorchan_end=ignorchan_end)
+        eig = eig( 
+            filenames=filenames, 
+            hdf5_filename=hdf5_filename, 
+            nsub=nsub, 
+            sub_step=sub_step, 
+            nbeam=nbeam, 
+            sigma_eigval=sigma_eigval, 
+            sigma_eigvec=sigma_eigvec, 
+            ignorchan_start=ignorchan_start, 
+            ignorchan_end=ignorchan_end)
         eig.plot_eigval()
         eig.generate_filter()
         eig.generate_mask()
