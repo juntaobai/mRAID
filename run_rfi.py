@@ -22,7 +22,7 @@ from rfi_covariance import ccm
 class mRAID(ccm):
     def __init__(self, filenames, step=20, freq_start=0, freq_end=0, sigma_val=3, sigma_vec=1,
                  nsub=256, downsamp=1, normal_base_start=2600, normal_base_end=2800,
-                 lam=1e3, ratio=0.005, itermax=35, task_index=0, output_prefix="test"):
+                 lam=1e3, ratio=0.005, itermax=35, task_index=0, output_prefix="mRAID_test"):
         self.infile = filenames
         self.step = step
         self.freq_start = freq_start
@@ -40,9 +40,6 @@ class mRAID(ccm):
         self.output_prefix = output_prefix
 
         self.npart = int(np.ceil(self.nsub / self.step))
-
-        super().__init__(filenames, 0, 0, freq_start, freq_end, sigma_val, sigma_vec,
-                         downsamp, normal_base_start, normal_base_end, lam, ratio, itermax)
 
     def run_single_chunk(self):
         """Run one chunk corresponding to task_index."""
