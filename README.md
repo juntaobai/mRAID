@@ -6,7 +6,7 @@ RFI codes for the multibeam system in general (or cryoPAF)
 
 Code written by Shi Dai and Juntao Bai.
 
-See the paper with the description of the concept at: 
+See the paper with the description of the concept at: https://arxiv.org/pdf/2512.16278
 
 
 Examples:
