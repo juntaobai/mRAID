@@ -96,9 +96,9 @@ class eig():
                 counts, bin_edges = np.histogram(data, bins=200)
                 bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
                 
-                mea, st = np.abs(np.mean(data)), np.abs(np.std(data))
+                mea, st = np.mean(data), np.std(data)
                 cou = max(counts)
-                bounds_par = ([cou-0.3*cou, -1, -1], [cou+0.3*cou, 1, 1])
+                bounds_par = ([0.7*cou, -1, 0], [1.3*cou, 1, 1])
                 
                 popt, _ = curve_fit(self.gaussian, bin_centers, counts, p0=[cou, mea, st], bounds=bounds_par, maxfev = 100000)
                 print('sigma:',popt[2])
@@ -118,9 +118,9 @@ class eig():
                     counts, bin_edges = np.histogram(data, bins=200)
                     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
                     
-                    mea, st = np.abs(np.mean(data)), np.abs(np.std(data))
+                    mea, st = np.mean(data), np.std(data)
                     cou = max(counts)
-                    bounds_par = ([cou-0.3*cou, -1, -1], [cou+0.3*cou, 1, 1])
+                    bounds_par = ([0.7*cou, -1, 0], [1.3*cou, 1, 1])
                     
                     popt, _ = curve_fit(self.gaussian, bin_centers, counts, p0=[cou, mea, st], bounds=bounds_par, maxfev = 100000)
                     print(count, 'sigma:',popt[2])
