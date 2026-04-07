@@ -30,9 +30,9 @@ from read_psrfits import read_fits
 
 class ccm (read_fits):
         def __init__(self, filenames, sub0=0, sub1=0, freq0=0, freq1=0, sigma_val=3, sigma_vec=1, 
-            downsamp=1, normal_base_start=2600, normal_base_end=2800, lam=1e3, ratio=0.005, itermax=35):
+            downsamp=1, normal_base_start=2600, normal_base_end=2800, no_arpls=False, lam=1e3, ratio=0.005, itermax=35):
                 print ('Initialising a multi-beam object\n')
-                super().__init__(filenames=filenames, sub0=sub0, sub1=sub1, freq0=freq0, freq1=freq1, downsamp=downsamp, lam=lam, ratio=ratio, itermax=itermax)
+                super().__init__(filenames=filenames, sub0=sub0, sub1=sub1, freq0=freq0, freq1=freq1, downsamp=downsamp, no_arpls=no_arpls, lam=lam, ratio=ratio, itermax=itermax)
                 self.sig_val = sigma_val
                 self.sig_vec = sigma_vec
                 self.normal_base_start = normal_base_start
@@ -43,9 +43,15 @@ class ccm (read_fits):
                         print ('{0} nsub:{1} nsblk:{2} nbits:{3} nchan:{4}'.format(self.filenames[i], self.nsub, self.nsblk, self.nbits, self.nchan, self.downsamp))
 
         def normalise (self):
+                normal_base_chn0 = np.argmin(np.fabs(self.dat_freq - self.normal_base_start))
+                normal_base_chn1 = np.argmin(np.fabs(self.dat_freq - self.normal_base_end))
+                print ('Normalisation channel range: ', normal_base_chn0, normal_base_chn1)
+                print ('Normalisation frequency range: ', self.dat_freq[normal_base_chn0], self.dat_freq[normal_base_chn1])
                 for i in range(self.nbeam):
-                        std = np.std(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])
-                        mean = np.mean(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])
+                        #std = np.std(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])
+                        #mean = np.mean(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])
+                        std = np.std(self.nbarray[i,:,normal_base_chn0:normal_base_chn1])
+                        mean = np.mean(self.nbarray[i,:,normal_base_chn0:normal_base_chn1])
                         self.nbarray[i,:,:] = (self.nbarray[i,:,:] - mean)/std
 
         def cal_ccm (self):
@@ -112,6 +118,7 @@ class ccm (read_fits):
                 #print("dat_freq:", self.dat_freq)
 
                 for i in range(self.use_nchan):
+                        print ('Calculating svd.... Channel number: %d'%i)
                         u, s, vh = la.svd(self.ccm[i])
                         self.eigval[i] = np.power(s, 2)/np.sum(np.power(s, 2))    # normalise eig vec
                         self.eigvec[i] = u
@@ -292,27 +299,30 @@ if __name__ == "__main__":
         # read in parameters
 
         parser = argparse.ArgumentParser(description='Constructs covariance matrices, performs eigen-decomposition')
-        parser.add_argument('-f',  '--input_file',  metavar='Input file name',  nargs='+', required=True, help='Input file name')
-        parser.add_argument('-sub',  '--subband_range', metavar='Subint ragne', nargs='+', default = [0, 0], type = int, help='Subint range')
-        parser.add_argument('-freq',  '--freq_range', metavar='Freq range (MHz)', nargs='+', default = [0, 0], type = int, help='Frequency range (MHz)')
-        parser.add_argument('-sig_val',  '--sigma_val', metavar='Eigenvalue threshold', default = 3, type = int, help='Masking eigenvalue threshold')
-        parser.add_argument('-sig_vec',  '--sigma_vec', metavar='Eigenvector threshold', default = 1, type = int, help='Masking eigenvector threshold')
-        parser.add_argument('-downsamp',  '--down_sample', metavar='Down sample', default = 1, type = int, help='Down sample')
-        parser.add_argument('-normal_base',  '--normalise_base', metavar='Normalise base', nargs=2, default = [2600, 2800], type = int, help='Normalise base')
-        parser.add_argument('-arpls', '--arpls_par', metavar='ArPLS parameters (lam ratio itermax)', nargs=3, default=[1e3, 0.005, 35], type=float, help='ArPLS parameters (lam ratio itermax)')
+        parser.add_argument('-f',            '--input_file',     metavar='Input file name',  nargs='+', required=True,                                          help='Input file name')
+        parser.add_argument('-sub',          '--subint_range',   metavar='Subint ragne', nargs='+', default = [0, 0], type = int,                               help='Subint range')
+        parser.add_argument('-freq',         '--freq_range',     metavar='Freq range (MHz)', nargs='+', default = [0, 0], type = int,                           help='Frequency range (MHz)')
+        parser.add_argument('-sig_val',      '--sigma_val',      metavar='Eigenvalue threshold', default = 3, type = int,                                       help='Masking eigenvalue threshold')
+        parser.add_argument('-sig_vec',      '--sigma_vec',      metavar='Eigenvector threshold', default = 1, type = int,                                      help='Masking eigenvector threshold')
+        parser.add_argument('-downsamp',     '--down_sample',    metavar='Down sample', default = 1, type = int,                                                help='Down sample')
+        parser.add_argument('-normal_base',  '--normalise_base', metavar='Normalise base', nargs=2, default = [1400.0, 1500.0], type=float,                     help='Frequency range used for normalisation')
+        parser.add_argument('-arpls',        '--arpls_par',      metavar='ArPLS parameters (lam ratio itermax)', nargs=3, default=[1e3, 0.005, 35], type=float, help='ArPLS parameters (lam ratio itermax)')
+        parser.add_argument('-no_arpls',     '--no_arpls_par',   action='store_true',                                                                           help='Turn off ArPLS')
+        #parser.add_argument('-normal_base',  '--normalise_base', metavar='Normalise base', nargs=2, default = [2600, 2800], type = int, help='Normalise base')
 
         args = parser.parse_args()
-        sub_start = int(args.subband_range[0])
-        sub_end = int(args.subband_range[1])
+        infile     = args.input_file
+        sub_start  = int(args.subint_range[0])
+        sub_end    = int(args.subint_range[1])
         freq_start = int(args.freq_range[0])
-        freq_end = int(args.freq_range[1])
-        sigma_val = float(args.sigma_val)
-        sigma_vec = float(args.sigma_vec)
-        downsamp = int(args.down_sample)
-        normal_base_start = int(args.normalise_base[0])
-        normal_base_end = int(args.normalise_base[1])
+        freq_end   = int(args.freq_range[1])
+        sigma_val  = float(args.sigma_val)
+        sigma_vec  = float(args.sigma_vec)
+        downsamp   = int(args.down_sample)
+        normal_base_start = float(args.normalise_base[0])
+        normal_base_end   = float(args.normalise_base[1])
         lam, ratio, itermax = args.arpls_par
-        infile = args.input_file
+        no_arpls            = args.no_arpls_par
 
         #read_data (infile[0], sub_start, sub_end)
         mb_ccm = ccm (
@@ -323,8 +333,10 @@ if __name__ == "__main__":
             downsamp=downsamp, 
             normal_base_start=normal_base_start, 
             normal_base_end=normal_base_end, 
+            no_arpls=no_arpls,
             lam=lam, ratio=ratio, itermax=int(itermax))
         mb_ccm.read_data()
+
         mb_ccm.normalise()
 
         mb_ccm.plot_data(xr=[0,4096], xtick=400)

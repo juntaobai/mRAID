@@ -121,6 +121,8 @@ class eig():
                     mea, st = np.abs(np.mean(data)), np.abs(np.std(data))
                     cou = max(counts)
                     bounds_par = ([cou-0.3*cou, -1, -1], [cou+0.3*cou, 1, 1])
+                    print (cou, mea, st)
+                    print (bounds_par)
                     
                     popt, _ = curve_fit(self.gaussian, bin_centers, counts, p0=[cou, mea, st], bounds=bounds_par, maxfev = 100000)
                     print(count, 'sigma:',popt[2])
