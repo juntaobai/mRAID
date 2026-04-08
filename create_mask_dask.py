@@ -24,6 +24,18 @@ import h5py
 import logging
 logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("mRAID_create_mask.log", mode='w'), # Save to file
+        logging.StreamHandler()                                 # Also print to console
+    ]
+)
+
+logging.info("A fresh start! This file was just overwritten.")
+
 class eig():
         def __init__(self, filenames, hdf5_prefix, nsub, sub_step, nbeam, sigma_eigval=3, sigma_eigvec=1, ignorchan_start=0, ignorchan_end=0):
                 self.filenames   = filenames
