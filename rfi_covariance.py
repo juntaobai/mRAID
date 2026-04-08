@@ -25,13 +25,16 @@ from scipy.signal import correlate
 
 from read_psrfits import read_fits
 
+import logging
+logger = logging.getLogger(__name__)
+
 ##########################
 
 
 class ccm (read_fits):
         def __init__(self, filenames, sub0=0, sub1=0, freq0=0, freq1=0, sigma_val=3, sigma_vec=1, 
             downsamp=1, normal_base_start=2600, normal_base_end=2800, no_arpls=False, lam=1e3, ratio=0.005, itermax=35):
-                print ('Initialising a multi-beam object\n')
+                logger.info ('Initialising a multi-beam object\n')
                 super().__init__(filenames=filenames, sub0=sub0, sub1=sub1, freq0=freq0, freq1=freq1, downsamp=downsamp, no_arpls=no_arpls, lam=lam, ratio=ratio, itermax=itermax)
                 self.sig_val = sigma_val
                 self.sig_vec = sigma_vec
@@ -40,13 +43,13 @@ class ccm (read_fits):
 
                 #self.read_data()
                 for i in range(self.nbeam):
-                        print ('{0} nsub:{1} nsblk:{2} nbits:{3} nchan:{4}'.format(self.filenames[i], self.nsub, self.nsblk, self.nbits, self.nchan, self.downsamp))
+                        logger.info('File information -- {0} nsub:{1} nsblk:{2} nbits:{3} nchan:{4}'.format(self.filenames[i], self.nsub, self.nsblk, self.nbits, self.nchan, self.downsamp))
 
         def normalise (self):
                 normal_base_chn0 = np.argmin(np.fabs(self.dat_freq - self.normal_base_start))
                 normal_base_chn1 = np.argmin(np.fabs(self.dat_freq - self.normal_base_end))
-                print ('Normalisation channel range: ', normal_base_chn0, normal_base_chn1)
-                print ('Normalisation frequency range: ', self.dat_freq[normal_base_chn0], self.dat_freq[normal_base_chn1])
+                logger.debug ('Normalisation channel range: ', normal_base_chn0, normal_base_chn1)
+                logger.debug ('Normalisation frequency range: ', self.dat_freq[normal_base_chn0], self.dat_freq[normal_base_chn1])
                 for i in range(self.nbeam):
                         #std = np.std(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])
                         #mean = np.mean(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])
@@ -118,7 +121,7 @@ class ccm (read_fits):
                 #print("dat_freq:", self.dat_freq)
 
                 for i in range(self.use_nchan):
-                        print ('Calculating svd.... Channel number: %d'%i)
+                        logger.debug ('Calculating svd.... Channel number: %d'%i)
                         u, s, vh = la.svd(self.ccm[i])
                         self.eigval[i] = np.power(s, 2)/np.sum(np.power(s, 2))    # normalise eig vec
                         self.eigvec[i] = u
@@ -147,12 +150,12 @@ class ccm (read_fits):
                 bounds_par = ([cou-0.3*cou, -1, -1], [cou+0.3*cou, 1, 1])
                 
                 popt, _ = curve_fit(self.gaussian, bin_centers, counts, p0=[cou, mea, st], bounds=bounds_par, maxfev = 100000)
-                print('sigma:',popt[2])
+                logger.debug('sigma:',popt[2])
                 fit_sigma =  popt[2]
                 self.eigval[:,0] = ma.masked_greater(self.eigval[:,0], popt[1]+self.sig_val*popt[2] )
                 self.eigval[:,0] = ma.masked_less(self.eigval[:,0], popt[1]-self.sig_val*popt[2] )
                 nchan_zap = np.ma.count_masked(self.eigval)
-                print("nchan_zap:", nchan_zap)
+                logger.debug("nchan_zap:", nchan_zap)
                 
                 nchan_zap = np.ma.count_masked(self.eigval)
 
@@ -169,17 +172,17 @@ class ccm (read_fits):
                     bounds_par = ([cou-0.3*cou, -1, -1], [cou+0.3*cou, 1, 1])
                     
                     popt, _ = curve_fit(self.gaussian, bin_centers, counts, p0=[cou, mea, st], bounds=bounds_par, maxfev = 100000)
-                    print(count, 'sigma:',popt[2])
+                    logger.debug(count, 'sigma:',popt[2])
                     fit_sigma =  popt[2]
                     self.eigval[:,0] = ma.masked_greater(self.eigval[:,0], popt[1]+self.sig_val*popt[2] )
                     self.eigval[:,0] = ma.masked_less(self.eigval[:,0], popt[1]-self.sig_val*popt[2] )
                     nchan_zap = np.ma.count_masked(self.eigval)
-                    print("nchan_zap:", nchan_zap)
+                    logger.debug("nchan_zap:", nchan_zap)
                     count += 1
 
                 # combine all the masked channel together
                 self.freq_mask = np.any(self.eigval.mask, axis=1)
-                print (np.arange(self.use_nchan)[self.freq_mask])
+                logger.debug ('freq_mask: ', np.arange(self.use_nchan)[self.freq_mask])
 
                 #print (self.eigvec[:,:,0].shape)
                 plt.clf()
@@ -249,7 +252,7 @@ class ccm (read_fits):
                         std_list.append(np.abs(popt[2]))
                 evc_mean = np.array(mean_list)
                 evc_sigma = np.array(std_list)
-                print("Mean and Sigma per beam:", evc_mean, evc_sigma)
+                logger.debug("Mean and Sigma per beam:", evc_mean, evc_sigma)
                 return evc_mean, evc_sigma
 
         def generate_mask (self):

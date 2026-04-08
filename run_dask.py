@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # =============================================================================
-# File      : run_rfi.py
+# File      : run_dask.py
 # Author    : Shi Dai and Juntao Bai
-# Created   : 2025-11-10
+# Created   : 2026-04-07
 # License   : GPL v3 License
 # -----------------------------------------------------------------------------
 # Description :
@@ -23,13 +23,28 @@ import dask
 from dask.distributed import Client, LocalCluster
 from dask import delayed
 
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("mRAID.log", mode='w'), # Save to file
+        logging.StreamHandler()           # Also print to console
+    ]
+)
+
+logging.info("A fresh start! This file was just overwritten.")
+
+
 def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_end=0, sigma_val=3, sigma_vec=1,
                nsub=256, downsamp=1, normal_base_start=1400.0, normal_base_end=1500.0, no_arpls=False,
                lam=1e3, ratio=0.005, itermax=35):
         """Run mRAID on one chunk of data according to sub_start and sub_end """
 
         #print(f"[Task {i}] Processing subint {sub_start} to {sub_end}")
-        print(f"Processing subint {sub_start} to {sub_end}")
+        logger.info(f"Processing subint {sub_start} to {sub_end}")
 
         mb_ccm = ccm(filenames, sub_start, sub_end,
                      freq_start, freq_end,
@@ -38,12 +53,12 @@ def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_e
                      no_arpls, lam, ratio, itermax)
 
         mb_ccm.read_data()
-        print('Finished reading data...')
+        logger.info('Finished reading data...')
 
         mb_ccm.normalise()
         mb_ccm.cal_ccm()
-        print('Finished calculating CCM...')
-        print(np.amax(mb_ccm.ccm), np.amin(mb_ccm.ccm))
+        logger.info('Finished calculating CCM...')
+        #print(np.amax(mb_ccm.ccm), np.amin(mb_ccm.ccm))
         #mb_ccm.plot_ccm(100)
 
         mb_ccm.cal_eigen()
@@ -55,7 +70,7 @@ def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_e
             hdf5_file.attrs['sub_end'] = sub_end
 
         #print(f"[Task {i}] Saved results to {out_file}")
-        print(f"Saved results to {out_file}")
+        logger.info(f"Saved results to {out_file}")
 
 
 if __name__ == "__main__":
@@ -97,7 +112,8 @@ if __name__ == "__main__":
     cluster = LocalCluster(n_workers=ncpus, threads_per_worker=1)
     client = Client(cluster)
 
-    print(f"Dask Dashboard accessible at: {client.dashboard_link}")
+    #print(f"Dask Dashboard accessible at: {client.dashboard_link}")
+    logger.debug(f"Dask Dashboard accessible at: {client.dashboard_link}")
 
     # 2. Create the lazy tasks
     tasks = []
@@ -120,10 +136,12 @@ if __name__ == "__main__":
         tasks.append(task)
 
     # 3. Execute the computation graph
-    print(f"Submitting {len(tasks)} tasks to Dask...")
+    #print(f"Submitting {len(tasks)} tasks to Dask...")
+    logger.debug(f"Submitting {len(tasks)} tasks to Dask...")
     results = dask.compute(*tasks)
     
-    print("All tasks completed successfully!")
+    #print("All tasks completed successfully!")
+    logger.debug("All tasks completed successfully!")
     
     # Cleanly shut down the cluster
     client.close()

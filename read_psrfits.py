@@ -20,6 +20,8 @@ from scipy import sparse
 from scipy.sparse.linalg import spsolve
 import math
 
+import logging
+logger = logging.getLogger(__name__)
 
 class read_fits ():
         def __init__ (self, filenames, sub0=0, sub1=40, freq0=0, freq1=0, downsamp=1, no_arpls=False, lam=1e3, ratio=0.005, itermax=35):
