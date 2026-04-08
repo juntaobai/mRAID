@@ -261,7 +261,7 @@ class eig():
                         num_zeros = np.count_nonzero(self.all_rfi_mask[:,:,beam_id] == 0)
                         num_ones = np.count_nonzero(self.all_rfi_mask[:,:,beam_id] == 1)
                         countt = (self.nchan-self.use_nchan)*self.npart
-                        logger.infor('Plotting eigvec...', beam_id, num_zeros, num_ones, num_zeros + num_ones, (num_zeros - countt)/ (num_zeros + num_ones - countt) )
+                        logger.info('Plotting eigvec...', beam_id, num_zeros, num_ones, num_zeros + num_ones, (num_zeros - countt)/ (num_zeros + num_ones - countt) )
                         i += 1
 
                 plt.savefig(f'{self.plot_prefix}_plot_eigvec_masked.png')
