@@ -246,7 +246,7 @@ class eig():
                 i = 0
                 for beam_id in beam:
                         plot_idx = i+1
-                        ax = plt.subplot(5, 4, plot_idx)
+                        ax = plt.subplot(5, math.ceil(self.nbeam/5), plot_idx)
                         ax.set_title('beam{0}'.format(beam_id+1))
                         ax.set_ylabel('Time', fontsize=14)
 
