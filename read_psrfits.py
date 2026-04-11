@@ -81,10 +81,13 @@ class read_fits ():
 
                 if self.sub0 == 0 and self.sub1 == 0:
                         self.nsamp = self.nsub*self.nsblk
-                        self.nbarray = np.empty((self.nbeam, self.nsblk*self.nsub/self.downsamp, self.use_nchan))
+                        self.nbarray = np.empty((self.nbeam, self.nsblk*self.nsub/self.downsamp, self.use_nchan), dtype=np.float16)
                 else:
                         self.nsamp = (self.sub1-self.sub0)*self.nsblk
-                        self.nbarray = np.empty((self.nbeam, int(self.nsblk*(self.sub1-self.sub0)/self.downsamp), self.use_nchan))
+                        self.nbarray = np.empty((self.nbeam, int(self.nsblk*(self.sub1-self.sub0)/self.downsamp), self.use_nchan), dtype=np.float16)
+
+                size_gb = self.nbarray.nbytes / (1024**3)
+                logger.debug ('Size of initial nbarray: {0}GB'.format(size_gb))
 
         def ArPLS(self, y):
             N = len(y)
@@ -144,6 +147,9 @@ class read_fits ():
                         else:
                                 unpack_data = data
 
+                        size_gb = unpack_data.nbytes / (1024**3)
+                        logger.debug ('Unpack array size: {0}GB'.format(size_gb))
+
                         # only use total intensity
                         if self.npol != 1:
                                 output_data = unpack_data[:,0,:] + unpack_data[:,1,:]
@@ -151,11 +157,14 @@ class read_fits ():
                                 output_data = np.squeeze(unpack_data)
 
                         output_data = output_data.reshape(int(self.nsamp/self.downsamp), self.downsamp, self.use_nchan).mean(axis=1)
-                        output_data = output_data.astype(np.float64)
+                        output_data = output_data.astype(np.float16)
+
+                        size_gb = output_data.nbytes / (1024**3)
+                        logger.debug ('Output array size: {0}GB'.format(size_gb))
 
                         if self.no_arpls is False:
                                 output_data = self.baseline_ArPLS(output_data)
-                                output_data = output_data.astype(np.float64)
+                                output_data = output_data.astype(np.float16)
                         #print(data.dtype)
 
                         #############################################################
