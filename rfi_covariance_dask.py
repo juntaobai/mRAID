@@ -49,8 +49,8 @@ class ccm (read_fits):
         def normalise (self):
                 normal_base_chn0 = np.argmin(np.fabs(self.dat_freq - self.normal_base_start))
                 normal_base_chn1 = np.argmin(np.fabs(self.dat_freq - self.normal_base_end))
-                logger.debug ('Normalisation channel range: ', normal_base_chn0, normal_base_chn1)
-                logger.debug ('Normalisation frequency range: ', self.dat_freq[normal_base_chn0], self.dat_freq[normal_base_chn1])
+                logger.debug ('Normalisation channel range: {0} {1}'.format(normal_base_chn0, normal_base_chn1))
+                logger.debug ('Normalisation frequency range: {0} {1}'.format(self.dat_freq[nmrmal_base_chn0], self.dat_freq[normal_base_chn1]))
                 for i in range(self.nbeam):
                         #std = np.std(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])
                         #mean = np.mean(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])
@@ -59,7 +59,7 @@ class ccm (read_fits):
                         self.nbarray[i,:,:] = (self.nbarray[i,:,:] - mean)/std
 
         def cal_ccm (self):
-                self.ccm = np.empty((self.use_nchan, self.nbeam, self.nbeam))
+                self.ccm = np.empty((self.use_nchan, self.nbeam, self.nbeam), dtype=np.float64)
                 for i in range(self.use_nchan):
                         data_slice = self.nbarray[:, :, i]  
                         self.ccm[i] = np.dot(data_slice, data_slice.T) 
@@ -75,7 +75,7 @@ class ccm (read_fits):
                 dask_ccm = da.einsum('ati,bti->iab', dask_array, dask_array)
                 
                 # Execute the graph and return the result as a numpy array
-                self.ccm = dask_ccm.compute(num_workers=4)
+                self.ccm = np.asarray(dask_ccm.compute(num_workers=4), dtype=np.float64)
 
         def sim_ccm (self):
                 print ("Simulating....\n")

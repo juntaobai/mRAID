@@ -48,8 +48,8 @@ class ccm (read_fits):
         def normalise (self):
                 normal_base_chn0 = np.argmin(np.fabs(self.dat_freq - self.normal_base_start))
                 normal_base_chn1 = np.argmin(np.fabs(self.dat_freq - self.normal_base_end))
-                logger.debug ('Normalisation channel range: ', normal_base_chn0, normal_base_chn1)
-                logger.debug ('Normalisation frequency range: ', self.dat_freq[normal_base_chn0], self.dat_freq[normal_base_chn1])
+                logger.debug ('Normalisation channel range: {0} {1}'.format(normal_base_chn0, normal_base_chn1))
+                logger.debug ('Normalisation frequency range: {0} {1}'.format(self.dat_freq[normal_base_chn0], self.dat_freq[normal_base_chn1]))
                 for i in range(self.nbeam):
                         #std = np.std(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])
                         #mean = np.mean(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])

@@ -163,6 +163,7 @@ class read_fits ():
                         logger.debug ('Output array size: {0}GB'.format(size_gb))
 
                         if self.no_arpls is False:
+                                logger.info ('No baseline fitting with ArPLS...')
                                 output_data = self.baseline_ArPLS(output_data)
                                 output_data = output_data.astype(np.float16)
                         #print(data.dtype)
