@@ -160,8 +160,11 @@ class read_fits ():
 
                         #############################################################
                         self.nbarray[i] = output_data
+                        size_gb = self.nbarray.nbytes / (1024**3)
+                        logger.debug ('Size of nbarray {0}GB'.format(size_gb))
+
                         #print ('Shape of the unpacked data: {0}\n'.format(self.nbarray[i].shape))
-                #np.save('raw_data_ArPLS.npy', self.nbarray )
+                        #np.save('raw_data_ArPLS.npy', self.nbarray )
 
         def plot_bandpass (self, beam=np.nan):
                 plt.clf()

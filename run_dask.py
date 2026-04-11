@@ -17,7 +17,7 @@ import h5py
 import argparse
 from astropy.io import fits
 from read_psrfits import read_fits
-from rfi_covariance import ccm
+from rfi_covariance_dask import ccm
 
 import dask
 from dask.distributed import Client, LocalCluster
@@ -56,7 +56,7 @@ def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_e
         logger.info('Finished reading data...')
 
         mb_ccm.normalise()
-        mb_ccm.cal_ccm()
+        mb_ccm.cal_ccm_einsum()
         logger.info('Finished calculating CCM...')
         #print(np.amax(mb_ccm.ccm), np.amin(mb_ccm.ccm))
         #mb_ccm.plot_ccm(100)
