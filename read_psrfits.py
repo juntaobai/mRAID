@@ -19,6 +19,7 @@ import argparse
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 import math
+import dask.array as da
 
 import logging
 logger = logging.getLogger(__name__)
@@ -31,8 +32,24 @@ LUT = np.array([
     for i in range(256)
 ], dtype=np.uint8)
 
+def unpack_nchan_axis(data_3d):
+    """
+    Unpacks (nsamp, npol, nchan) -> (nsamp, npol, nchan * 4)
+    """
+    nsamp, npol, nchan = data_3d.shape
+    
+    # 1. Map the bytes to the LUT. 
+    # New shape becomes (nbeam, nsamp, npol, nchan, 4)
+    unpacked = LUT[data_3d]
+    
+    # 2. Reshape to merge the new '4' dimension into the 'nchan' dimension.
+    # We use reshape to effectively 'flatten' the last two dimensions.
+    return unpacked.reshape(nsamp, npol, nchan * 4)
+
+###############################
+
 class read_fits ():
-        def __init__ (self, filenames, sub0=0, sub1=40, freq0=0, freq1=0, downsamp=1, no_arpls=False, lam=1e3, ratio=0.005, itermax=35):
+        def __init__ (self, filenames, sub0=0, sub1=40, freq0=0, freq1=0, downsamp=1, no_arpls=False, nchunk=64, lam=1e3, ratio=0.005, itermax=35):
                 self.filenames = filenames
                 self.sub0 = sub0
                 self.sub1 = sub1
@@ -41,6 +58,7 @@ class read_fits ():
                 self.ratio = ratio
                 self.itermax = itermax
                 self.no_arpls = no_arpls
+                self.nchunk = nchunk
                 logger.debug ('Are we fitting the baseline? {0}'.format(not self.no_arpls))
 
                 self.nbeam = len(filenames)
@@ -90,10 +108,10 @@ class read_fits ():
 
                 if self.sub0 == 0 and self.sub1 == 0:
                         self.nsamp = self.nsub*self.nsblk
-                        self.nbarray = np.empty((self.nbeam, self.nsblk*self.nsub/self.downsamp, self.use_nchan), dtype=np.float16)
                 else:
                         self.nsamp = (self.sub1-self.sub0)*self.nsblk
-                        self.nbarray = np.empty((self.nbeam, int(self.nsblk*(self.sub1-self.sub0)/self.downsamp), self.use_nchan), dtype=np.float16)
+
+                self.nbarray = np.empty((self.nbeam, int(self.nsamp/self.downsamp), self.use_nchan), dtype=np.float16)
 
                 size_gb = self.nbarray.nbytes / (1024**3)
                 logger.debug ('Size of initial nbarray: {0}GB'.format(size_gb))
@@ -155,8 +173,15 @@ class read_fits ():
                                 #unpack_data = np.squeeze(np.packbits(np.insert(temp, [0,0,0,0,0,0], 0, axis=-1), axis=-1))
 
                                 # accelerating unpacking using a look-up table
-                                unpack_data = LUT[data]
-                                unpack_data.reshape(self.nsamp, self.npol, self.use_nchan)
+                                #unpack_data = LUT[data]
+                                #unpack_data.reshape(self.nsamp, self.npol, self.use_nchan)
+
+				# divide the data array into 64 chunks
+                                raw_data_dask = da.from_array(data, chunks=(int(self.nsamp/self.nchunk), self.npol, int(self.use_nchan/(8/self.nbits))))
+                                new_chunks = list(raw_data_dask.chunks)
+                                new_chunks[2] = tuple(c * 4 for c in raw_data_dask.chunks[2])
+                                #unpack_data = raw_data_dask.map_blocks(unpack_nchan_axis, dtype=np.uint8, chunks=new_chunks)
+                                unpack_data = raw_data_dask.map_blocks(unpack_nchan_axis, dtype=np.uint8, chunks=new_chunks)
                         else:
                                 unpack_data = data
 
@@ -235,6 +260,7 @@ if __name__ == "__main__":
         parser.add_argument('-downsamp',  '--down_sample',   metavar='Down sample', default = 1,    type = int,    help='Down sample')
         parser.add_argument('-no_arpls',  '--no_arpls_par',  action='store_true',                                  help='Turn off ArPLS')
         parser.add_argument('-arpls',     '--arpls_par',     metavar='ArPLS parameters (lam ratio itermax)', nargs=3, default=[1e3, 0.005, 35], type=float, help='ArPLS parameters (lam ratio itermax)')
+        parser.add_argument('-nchunk',    '--num_chunks',    metavar='N chunks for DASK', default=64,  type = int, help='Number of chunks in the data array for DASK acceleration')
 
         args = parser.parse_args()
         infile    = args.input_file
@@ -243,8 +269,9 @@ if __name__ == "__main__":
         downsamp  = int(args.down_sample)
         no_arpls  = args.no_arpls_par
         lam, ratio, itermax = args.arpls_par
+        nchunk    = args.num_chunks
 
-        srch = read_fits(filenames=infile, sub0=sub_start, sub1=sub_end, downsamp=downsamp, no_arpls=no_arpls, lam=lam, ratio=ratio, itermax=int(itermax))
+        srch = read_fits(filenames=infile, sub0=sub_start, sub1=sub_end, downsamp=downsamp, no_arpls=no_arpls, nchunk=nchunk, lam=lam, ratio=ratio, itermax=int(itermax))
         srch.read_data()
 
         #srch.plot_bandpass()
