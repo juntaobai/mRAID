@@ -150,7 +150,10 @@ if __name__ == "__main__":
     #cluster.close()
 
     for start in range(0, nsub, step):
-        end = min(start + step - 1, nsub - 1)
+        if step > 1:
+            end = min(start + step - 1, nsub - 1)
+        else:
+            end = start + 1
         
         # Give each chunk a unique output file to prevent write collisions
         out_file = f"{output_prefix}_{start}_{end}.h5"
