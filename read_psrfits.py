@@ -23,6 +23,14 @@ import math
 import logging
 logger = logging.getLogger(__name__)
 
+# Assuming 2-bit sampling
+# Create the Lookup Table (Pre-compute once)
+# This maps every value from 0-255 to its four 2-bit components
+LUT = np.array([
+    [(i >> 6) & 0x03, (i >> 4) & 0x03, (i >> 2) & 0x03, i & 0x03]
+    for i in range(256)
+], dtype=np.uint8)
+
 class read_fits ():
         def __init__ (self, filenames, sub0=0, sub1=40, freq0=0, freq1=0, downsamp=1, no_arpls=False, lam=1e3, ratio=0.005, itermax=35):
                 self.filenames = filenames
@@ -33,6 +41,7 @@ class read_fits ():
                 self.ratio = ratio
                 self.itermax = itermax
                 self.no_arpls = no_arpls
+                logger.debug ('Are we fitting the baseline? {0}'.format(not self.no_arpls))
 
                 self.nbeam = len(filenames)
 
@@ -142,8 +151,12 @@ class read_fits ():
 
                         # unpack data if it's not 8-bit
                         if self.nbits != 8:
-                                temp = np.reshape(np.unpackbits(data, axis=-1), (self.nsamp, self.npol, self.use_nchan, self.nbits))
-                                unpack_data = np.squeeze(np.packbits(np.insert(temp, [0,0,0,0,0,0], 0, axis=-1), axis=-1))
+                                #temp = np.reshape(np.unpackbits(data, axis=-1), (self.nsamp, self.npol, self.use_nchan, self.nbits))
+                                #unpack_data = np.squeeze(np.packbits(np.insert(temp, [0,0,0,0,0,0], 0, axis=-1), axis=-1))
+
+                                # accelerating unpacking using a look-up table
+                                unpack_data = LUT[data]
+                                unpack_data.reshape(self.nsamp, self.npol, self.use_nchan)
                         else:
                                 unpack_data = data
 
@@ -163,7 +176,7 @@ class read_fits ():
                         logger.debug ('Output array size: {0}GB'.format(size_gb))
 
                         if self.no_arpls is False:
-                                logger.info ('No baseline fitting with ArPLS...')
+                                logger.info ('Fitting baseline with ArPLS...')
                                 output_data = self.baseline_ArPLS(output_data)
                                 output_data = output_data.astype(np.float16)
                         #print(data.dtype)
