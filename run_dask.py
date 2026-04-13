@@ -107,63 +107,66 @@ if __name__ == "__main__":
     #task_index           = args.task_index
     #######################################
 
-    ## 1. Initialize a Dask cluster with exactly ncpus workers
-    ## Using threads_per_worker=1 is usually safest for heavy numpy/HDF5 I/O tasks 
-    ## to avoid the Python Global Interpreter Lock (GIL) and HDF5 concurrency issues.
-    #cluster = LocalCluster(n_workers=ncpus, threads_per_worker=1)
-    #client = Client(cluster)
+    # 1. Initialize a Dask cluster with exactly ncpus workers
+    # Using threads_per_worker=1 is usually safest for heavy numpy/HDF5 I/O tasks 
+    # to avoid the Python Global Interpreter Lock (GIL) and HDF5 concurrency issues.
+    cluster = LocalCluster(n_workers=ncpus, threads_per_worker=1)
+    client = Client(cluster)
 
-    ##print(f"Dask Dashboard accessible at: {client.dashboard_link}")
-    #logger.debug(f"Dask Dashboard accessible at: {client.dashboard_link}")
+    #print(f"Dask Dashboard accessible at: {client.dashboard_link}")
+    logger.debug(f"Dask Dashboard accessible at: {client.dashboard_link}")
 
-    ## 2. Create the lazy tasks
-    #tasks = []
-    #for start in range(0, nsub, step):
-    #    # Calculate the end index. Since you specified "0 to 4" for a chunk of 5, 
-    #    # we subtract 1. (If your 'ccm' function expects exclusive Python slicing 
-    #    # like 0:5, simply remove the '- 1').
-    #    end = min(start + step - 1, nsub - 1)
-    #    
-    #    # Give each chunk a unique output file to prevent write collisions
-    #    out_file = f"{output_prefix}_{start}_{end}.h5"
-
-    #    # Wrap the function call in dask.delayed instead of running it immediately
-    #    task = delayed(run_mRAID)(
-    #        filenames=filenames,
-    #        out_file=out_file,
-    #        sub_start=start,
-    #        sub_end=end,
-    #        no_arpls=no_arpls
-    #    )
-    #    tasks.append(task)
-
-    ## 3. Execute the computation graph
-    ##print(f"Submitting {len(tasks)} tasks to Dask...")
-    #logger.debug(f"Submitting {len(tasks)} tasks to Dask...")
-    #results = dask.compute(*tasks)
-    #
-    ##print("All tasks completed successfully!")
-    #logger.debug("All tasks completed successfully!")
-    #
-    ## Cleanly shut down the cluster
-    #client.close()
-    #cluster.close()
-
+    # 2. Create the lazy tasks
+    tasks = []
     for start in range(0, nsub, step):
-        if step > 1:
-            end = min(start + step - 1, nsub - 1)
-        else:
+        # Calculate the end index. Since you specified "0 to 4" for a chunk of 5, 
+        # we subtract 1. (If your 'ccm' function expects exclusive Python slicing 
+        # like 0:5, simply remove the '- 1').
+        if step == 1:
             end = start + 1
+        else:
+            end = min(start + step - 1, nsub - 1)
         
         # Give each chunk a unique output file to prevent write collisions
         out_file = f"{output_prefix}_{start}_{end}.h5"
 
         # Wrap the function call in dask.delayed instead of running it immediately
-        run_mRAID(
+        task = delayed(run_mRAID)(
             filenames=filenames,
             out_file=out_file,
             sub_start=start,
             sub_end=end,
-            no_arpls=no_arpls,
-            downsamp=downsamp
+            no_arpls=no_arpls
         )
+        tasks.append(task)
+
+    # 3. Execute the computation graph
+    #print(f"Submitting {len(tasks)} tasks to Dask...")
+    logger.debug(f"Submitting {len(tasks)} tasks to Dask...")
+    results = dask.compute(*tasks)
+    
+    #print("All tasks completed successfully!")
+    logger.debug("All tasks completed successfully!")
+    
+    # Cleanly shut down the cluster
+    client.close()
+    cluster.close()
+
+    #for start in range(0, nsub, step):
+    #    if step > 1:
+    #        end = min(start + step - 1, nsub - 1)
+    #    else:
+    #        end = start + 1
+    #    
+    #    # Give each chunk a unique output file to prevent write collisions
+    #    out_file = f"{output_prefix}_{start}_{end}.h5"
+
+    #    # Wrap the function call in dask.delayed instead of running it immediately
+    #    run_mRAID(
+    #        filenames=filenames,
+    #        out_file=out_file,
+    #        sub_start=start,
+    #        sub_end=end,
+    #        no_arpls=no_arpls,
+    #        downsamp=downsamp
+    #    )

@@ -125,8 +125,8 @@ class read_fits ():
             w = np.ones(N)
             self.lam = self.lam * np.ones(N)
             for i in range(self.itermax):
-                    W = sparse.diags(w, 0, shape=(N, N))
-                    LAM = sparse.diags(self.lam, 0, shape=(N, N))
+                    W = sparse.diags([w], [0], shape=(N, N))
+                    LAM = sparse.diags([self.lam], [0], shape=(N, N))
                     Z = W + LAM * D.dot(D.T)
                     z = spsolve(Z, w * y)
                     d = y - z

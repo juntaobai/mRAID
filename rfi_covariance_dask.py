@@ -75,7 +75,7 @@ class ccm (read_fits):
                 dask_ccm = da.einsum('ati,bti->iab', dask_array, dask_array)
                 
                 # Execute the graph and return the result as a numpy array
-                self.ccm = np.asarray(dask_ccm.compute(), dtype=np.float64)
+                self.ccm = np.asarray(dask_ccm.compute(n_workers=1), dtype=np.float64)
 
         def sim_ccm (self):
                 print ("Simulating....\n")
