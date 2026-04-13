@@ -186,6 +186,7 @@ class read_fits ():
                                 unpack_data = data
 
                         size_gb = unpack_data.nbytes / (1024**3)
+                        logger.debug ('Unpack array shape: {0}'.format(unpack_data.shape))
                         logger.debug ('Unpack array size: {0}GB'.format(size_gb))
 
                         # only use total intensity
@@ -198,6 +199,7 @@ class read_fits ():
                         output_data = output_data.astype(np.float16)
 
                         size_gb = output_data.nbytes / (1024**3)
+                        logger.debug ('Output array shape: {0}'.format(output_data.shape))
                         logger.debug ('Output array size: {0}GB'.format(size_gb))
 
                         if self.no_arpls is False:

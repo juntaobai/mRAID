@@ -164,5 +164,6 @@ if __name__ == "__main__":
             out_file=out_file,
             sub_start=start,
             sub_end=end,
-            no_arpls=no_arpls
+            no_arpls=no_arpls,
+            downsamp=downsamp
         )
