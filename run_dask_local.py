@@ -18,13 +18,11 @@ import argparse
 from astropy.io import fits
 from read_psrfits import read_fits
 from rfi_covariance_dask import ccm
+import logging
 
 import dask
 from dask.distributed import Client, LocalCluster
 from dask import delayed
-from dask_jobqueue import SLURMCluster
-
-import logging
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -37,7 +35,6 @@ logging.basicConfig(
 )
 
 logging.info("A fresh start! This file was just overwritten.")
-
 
 def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_end=0, sigma_val=3, sigma_vec=1,
                nsub=256, downsamp=1, normal_base_start=1400.0, normal_base_end=1500.0, no_arpls=False,
@@ -109,32 +106,33 @@ if __name__ == "__main__":
     nchunks              = args.num_chunks             # num_chunks is used for Dask within functions such as unpacking and cal_ccm; this is not used when calling Dask at higher level to avoid dask-within-dask
     normal_base_start, normal_base_end = args.normalise_base
 
-    # 1. Setup SLURMCluster
-    # This configuration asks Slurm for nodes. Adjust 'queue', 'cores', and 'memory' 
-    # to match your HPC's specific partition rules.
-    cluster = SLURMCluster(
-        account='od-207757',
-        cores=1,                        # One task per Slurm job
-        memory='100GB',                 # Match your 100GB+ array needs
-        walltime='02:00:00',
-        # Crucial for NumPy/HDF5: ensure each worker is a separate process
-        job_extra_directives=['--ntasks=1', '--cpus-per-task=1']
+    # 1. Initialize the LocalCluster
+    # We use 'processes=True' to give each worker its own memory space (best for GIL)
+    # 'memory_limit' prevents the machine from freezing if one task spikes in RAM
+    cluster = LocalCluster(
+        n_workers=ncpus,           # Use the number of CPUs requested via -ncpus
+        threads_per_worker=1,      # 1 thread per worker is safest for memory-heavy code
+        processes=True,            # Each worker is a separate process
+        memory_limit='auto',       # Dask will divide your system RAM among workers
+        dashboard_address=':8787'  # Accessible at http://localhost:8787
     )
-
-    # 2. Scale the cluster
-    # This tells Slurm to start 'ncpus' number of jobs.
-    cluster.scale(jobs=args.num_cpus)
     client = Client(cluster)
-    
-    logger.info(f"Dask Dashboard link: {client.dashboard_link}")
 
-    # 3. Create the lazy task list
+    logger.info(f"Local Dask Cluster started with {ncpus} workers.")
+    logger.info(f"Dashboard available at: {client.dashboard_link}")
+
+    # 2. Create the lazy task list
     tasks = []
     for start in range(0, nsub, step):
-        end = start + 1 if step == 1 else min(start + step - 1, nsub - 1)
+        if step == 1:
+            end = start + 1
+        else:
+            end = min(start + step - 1, nsub - 1)
+
         out_file = f"{output_prefix}_{start}_{end}.h5"
 
         # Wrap run_mRAID in delayed
+        # This creates a task 'graph' rather than running the code
         task = delayed(run_mRAID)(
             filenames=filenames,
             out_file=out_file,
@@ -146,10 +144,16 @@ if __name__ == "__main__":
         )
         tasks.append(task)
 
-    # 4. Execute everything across the HPC nodes
-    logger.info(f"Submitting {len(tasks)} tasks to Slurm via Dask...")
-    results = dask.compute(*tasks)
-    
-    logger.info("All tasks completed. Closing cluster.")
-    client.close()
-    cluster.close()
+    # 3. Execute the computation
+    # dask.compute sends the tasks to the workers one-by-one or in parallel
+    # based on the number of workers you defined.
+    try:
+        logger.info(f"Submitting {len(tasks)} tasks to LocalCluster...")
+        results = dask.compute(*tasks)
+        logger.info("All tasks completed successfully!")
+    except Exception as e:
+        logger.error(f"Computation failed: {e}")
+    finally:
+        # 4. Clean shutdown
+        client.close()
+        cluster.close()
