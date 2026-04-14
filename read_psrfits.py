@@ -174,17 +174,18 @@ class read_fits ():
                                 #unpack_data = np.squeeze(np.packbits(np.insert(temp, [0,0,0,0,0,0], 0, axis=-1), axis=-1))
 
                                 # accelerating unpacking using a look-up table
-                                #unpack_data = LUT[data]
-                                #unpack_data.reshape(self.nsamp, self.npol, self.use_nchan)
+                                unpack_data = LUT[data]
+                                unpack_data.reshape(self.nsamp, self.npol, self.use_nchan)
 
-				# divide the data array into 64 chunks
-                                client = Client(n_workers=4, threads_per_worker=1, processes=True)
-                                raw_data_dask = da.from_array(data, chunks=(int(self.nsamp/self.nchunks), self.npol, int(self.use_nchan/(8/self.nbits))))
-                                new_chunks = list(raw_data_dask.chunks)
-                                new_chunks[2] = tuple(c * 4 for c in raw_data_dask.chunks[2])
+                                ###### It's not recommended to use Dask-within-Dark
+				## divide the data array into 64 chunks
+                                ##client = Client(n_workers=4, threads_per_worker=1, processes=True)
+                                #raw_data_dask = da.from_array(data, chunks=(int(self.nsamp/self.nchunks), self.npol, int(self.use_nchan/(8/self.nbits))))
+                                #new_chunks = list(raw_data_dask.chunks)
+                                #new_chunks[2] = tuple(c * 4 for c in raw_data_dask.chunks[2])
+                                ##unpack_data = raw_data_dask.map_blocks(unpack_nchan_axis, dtype=np.uint8, chunks=new_chunks)
                                 #unpack_data = raw_data_dask.map_blocks(unpack_nchan_axis, dtype=np.uint8, chunks=new_chunks)
-                                unpack_data = raw_data_dask.map_blocks(unpack_nchan_axis, dtype=np.uint8, chunks=new_chunks)
-                                client.close()
+                                ##client.close()
                         else:
                                 unpack_data = data
 

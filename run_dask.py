@@ -22,6 +22,7 @@ from rfi_covariance_dask import ccm
 import dask
 from dask.distributed import Client, LocalCluster
 from dask import delayed
+from dask_jobqueue import SLURMCluster
 
 import logging
 
@@ -74,6 +75,7 @@ def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_e
         #print(f"[Task {i}] Saved results to {out_file}")
         logger.info(f"Saved results to {out_file}")
 
+##########################################################
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='mRAID: Multi-beam RFI detection tool')
@@ -90,7 +92,6 @@ if __name__ == "__main__":
     parser.add_argument('-no_arpls',    '--no_arpls_par',   action='store_true',                           help='Turn off ArPLS')
     parser.add_argument('-ncpus',       '--num_cpus',       default=5,  type=int,                          help='Number of CPUs/jobs')
     parser.add_argument('-nchunks',     '--num_chunks',     default=64, type=int,                          help='Number of chunks for DASK unpacking and CCM calculation')
-    #parser.add_argument('-i',           '--task_index',     default=0, type=int,                           help='Task index (for PBS array job)')
 
     args = parser.parse_args()
 
@@ -105,68 +106,38 @@ if __name__ == "__main__":
     output_prefix        = args.output_prefix
     no_arpls             = args.no_arpls_par
     ncpus                = args.num_cpus
-    nchunks              = args.num_chunks
+    nchunks              = args.num_chunks             # num_chunks is used for Dask within functions such as unpacking and cal_ccm; this is not used when calling Dask at higher level to avoid dask-within-dask
     normal_base_start, normal_base_end = args.normalise_base
-    #task_index           = args.task_index
-    #######################################
 
-    ## 1. Initialize a Dask cluster with exactly ncpus workers
-    ## Using threads_per_worker=1 is usually safest for heavy numpy/HDF5 I/O tasks 
-    ## to avoid the Python Global Interpreter Lock (GIL) and HDF5 concurrency issues.
-    #cluster = LocalCluster(n_workers=ncpus, threads_per_worker=1, processes=True)
-    #client = Client(cluster)
+    # 1. Setup SLURMCluster
+    # This configuration asks Slurm for nodes. Adjust 'queue', 'cores', and 'memory' 
+    # to match your HPC's specific partition rules.
+    cluster = SLURMCluster(
+        queue='standard',               # Your Slurm partition name
+        project='od-207757',            # Project/Account name if required
+        cores=1,                        # One task per Slurm job
+        memory='100GB',                 # Match your 100GB+ array needs
+        walltime='02:00:00',
+        interface='ib0',                # Often 'ib0' or 'eth0' on HPCs
+        # Crucial for NumPy/HDF5: ensure each worker is a separate process
+        job_extra_directives=['--ntasks=1', '--cpus-per-task=1']
+    )
 
-    ##print(f"Dask Dashboard accessible at: {client.dashboard_link}")
-    #logger.debug(f"Dask Dashboard accessible at: {client.dashboard_link}")
+    # 2. Scale the cluster
+    # This tells Slurm to start 'ncpus' number of jobs.
+    cluster.scale(jobs=args.num_cpus)
+    client = Client(cluster)
+    
+    logger.info(f"Dask Dashboard link: {client.dashboard_link}")
 
-    ## 2. Create the lazy tasks
-    #tasks = []
-    #for start in range(0, nsub, step):
-    #    # Calculate the end index. Since you specified "0 to 4" for a chunk of 5, 
-    #    # we subtract 1. (If your 'ccm' function expects exclusive Python slicing 
-    #    # like 0:5, simply remove the '- 1').
-    #    if step == 1:
-    #        end = start + 1
-    #    else:
-    #        end = min(start + step - 1, nsub - 1)
-    #    
-    #    # Give each chunk a unique output file to prevent write collisions
-    #    out_file = f"{output_prefix}_{start}_{end}.h5"
-
-    #    # Wrap the function call in dask.delayed instead of running it immediately
-    #    task = delayed(run_mRAID)(
-    #        filenames=filenames,
-    #        out_file=out_file,
-    #        sub_start=start,
-    #        sub_end=end,
-    #        no_arpls=no_arpls,
-    #        downsamp=downsamp
-    #    )
-    #    tasks.append(task)
-
-    ## 3. Execute the computation graph
-    ##print(f"Submitting {len(tasks)} tasks to Dask...")
-    #logger.debug(f"Submitting {len(tasks)} tasks to Dask...")
-    #results = dask.compute(*tasks)
-    #
-    ##print("All tasks completed successfully!")
-    #logger.debug("All tasks completed successfully!")
-    #
-    ## Cleanly shut down the cluster
-    #client.close()
-    #cluster.close()
-
+    # 3. Create the lazy task list
+    tasks = []
     for start in range(0, nsub, step):
-        if step == 1:
-            end = start + 1
-        else:
-            end = min(start + step - 1, nsub - 1)
-        
-        # Give each chunk a unique output file to prevent write collisions
+        end = start + 1 if step == 1 else min(start + step - 1, nsub - 1)
         out_file = f"{output_prefix}_{start}_{end}.h5"
 
-        # Wrap the function call in dask.delayed instead of running it immediately
-        run_mRAID(
+        # Wrap run_mRAID in delayed
+        task = delayed(run_mRAID)(
             filenames=filenames,
             out_file=out_file,
             sub_start=start,
@@ -175,3 +146,12 @@ if __name__ == "__main__":
             downsamp=downsamp,
             nchunks=nchunks
         )
+        tasks.append(task)
+
+    # 4. Execute everything across the HPC nodes
+    logger.info(f"Submitting {len(tasks)} tasks to Slurm via Dask...")
+    results = dask.compute(*tasks)
+    
+    logger.info("All tasks completed. Closing cluster.")
+    client.close()
+    cluster.close()

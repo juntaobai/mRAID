@@ -59,12 +59,14 @@ class ccm (read_fits):
                         self.nbarray[i,:,:] = (self.nbarray[i,:,:] - mean)/std
 
         def cal_ccm (self):
+                ###### This function is used when calling Dask at higher level 
                 self.ccm = np.empty((self.use_nchan, self.nbeam, self.nbeam), dtype=np.float64)
                 for i in range(self.use_nchan):
                         data_slice = self.nbarray[:, :, i]  
                         self.ccm[i] = np.dot(data_slice, data_slice.T) 
 
         def cal_ccm_einsum(self):
+                ###### It's not recommended to use Dask-within-Dask 
                 logger.debug ('Calculating CCM using DASK...')
                 dask_array = da.from_array(self.nbarray, chunks=(-1, -1, self.nchunks))
                 # If self.nbarray is a numpy array, convert it first:
