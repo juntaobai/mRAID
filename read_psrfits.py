@@ -49,7 +49,7 @@ def unpack_nchan_axis(data_3d):
 ###############################
 
 class read_fits ():
-        def __init__ (self, filenames, sub0=0, sub1=40, freq0=0, freq1=0, downsamp=1, no_arpls=False, nchunk=64, lam=1e3, ratio=0.005, itermax=35):
+        def __init__ (self, filenames, sub0=0, sub1=40, freq0=0, freq1=0, downsamp=1, no_arpls=False, nchunks=64, lam=1e3, ratio=0.005, itermax=35):
                 self.filenames = filenames
                 self.sub0 = sub0
                 self.sub1 = sub1
@@ -58,7 +58,7 @@ class read_fits ():
                 self.ratio = ratio
                 self.itermax = itermax
                 self.no_arpls = no_arpls
-                self.nchunk = nchunk
+                self.nchunks = nchunks
                 logger.debug ('Are we fitting the baseline? {0}'.format(not self.no_arpls))
 
                 self.nbeam = len(filenames)
@@ -177,7 +177,7 @@ class read_fits ():
                                 #unpack_data.reshape(self.nsamp, self.npol, self.use_nchan)
 
 				# divide the data array into 64 chunks
-                                raw_data_dask = da.from_array(data, chunks=(int(self.nsamp/self.nchunk), self.npol, int(self.use_nchan/(8/self.nbits))))
+                                raw_data_dask = da.from_array(data, chunks=(int(self.nsamp/self.nchunks), self.npol, int(self.use_nchan/(8/self.nbits))))
                                 new_chunks = list(raw_data_dask.chunks)
                                 new_chunks[2] = tuple(c * 4 for c in raw_data_dask.chunks[2])
                                 #unpack_data = raw_data_dask.map_blocks(unpack_nchan_axis, dtype=np.uint8, chunks=new_chunks)
@@ -271,9 +271,9 @@ if __name__ == "__main__":
         downsamp  = int(args.down_sample)
         no_arpls  = args.no_arpls_par
         lam, ratio, itermax = args.arpls_par
-        nchunk    = args.num_chunks
+        nchunks    = args.num_chunks
 
-        srch = read_fits(filenames=infile, sub0=sub_start, sub1=sub_end, downsamp=downsamp, no_arpls=no_arpls, nchunk=nchunk, lam=lam, ratio=ratio, itermax=int(itermax))
+        srch = read_fits(filenames=infile, sub0=sub_start, sub1=sub_end, downsamp=downsamp, no_arpls=no_arpls, nchunks=nchunks, lam=lam, ratio=ratio, itermax=int(itermax))
         srch.read_data()
 
         #srch.plot_bandpass()
