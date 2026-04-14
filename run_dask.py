@@ -113,12 +113,9 @@ if __name__ == "__main__":
     # This configuration asks Slurm for nodes. Adjust 'queue', 'cores', and 'memory' 
     # to match your HPC's specific partition rules.
     cluster = SLURMCluster(
-        queue='standard',               # Your Slurm partition name
-        project='od-207757',            # Project/Account name if required
         cores=1,                        # One task per Slurm job
         memory='100GB',                 # Match your 100GB+ array needs
         walltime='02:00:00',
-        interface='ib0',                # Often 'ib0' or 'eth0' on HPCs
         # Crucial for NumPy/HDF5: ensure each worker is a separate process
         job_extra_directives=['--ntasks=1', '--cpus-per-task=1']
     )
