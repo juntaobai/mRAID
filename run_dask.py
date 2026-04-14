@@ -40,7 +40,7 @@ logging.info("A fresh start! This file was just overwritten.")
 
 def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_end=0, sigma_val=3, sigma_vec=1,
                nsub=256, downsamp=1, normal_base_start=1400.0, normal_base_end=1500.0, no_arpls=False,
-               lam=1e3, ratio=0.005, itermax=35):
+               nchunks=64, lam=1e3, ratio=0.005, itermax=35):
         """Run mRAID on one chunk of data according to sub_start and sub_end """
 
         #print(f"[Task {i}] Processing subint {sub_start} to {sub_end}")
@@ -50,7 +50,7 @@ def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_e
                      freq_start, freq_end,
                      sigma_val, sigma_vec,
                      downsamp, normal_base_start, normal_base_end,
-                     no_arpls, lam, ratio, itermax)
+                     no_arpls, nchunks, lam, ratio, itermax)
 
         mb_ccm.read_data()
         logger.info('Finished reading data...')
@@ -105,6 +105,7 @@ if __name__ == "__main__":
     output_prefix        = args.output_prefix
     no_arpls             = args.no_arpls_par
     ncpus                = args.num_cpus
+    nchunks              = args.num_chunks
     normal_base_start, normal_base_end = args.normalise_base
     #task_index           = args.task_index
     #######################################
@@ -171,5 +172,6 @@ if __name__ == "__main__":
             sub_start=start,
             sub_end=end,
             no_arpls=no_arpls,
-            downsamp=downsamp
+            downsamp=downsamp,
+            nchunks=nchunks
         )

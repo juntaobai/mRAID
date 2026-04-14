@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 class ccm (read_fits):
         def __init__(self, filenames, sub0=0, sub1=0, freq0=0, freq1=0, sigma_val=3, sigma_vec=1, 
-            downsamp=1, normal_base_start=2600, normal_base_end=2800, no_arpls=False, lam=1e3, ratio=0.005, itermax=35):
+            downsamp=1, normal_base_start=2600, normal_base_end=2800, no_arpls=False, nchunks=64, lam=1e3, ratio=0.005, itermax=35):
                 logger.info ('Initialising a multi-beam object\n')
                 super().__init__(filenames=filenames, sub0=sub0, sub1=sub1, freq0=freq0, freq1=freq1, downsamp=downsamp, no_arpls=no_arpls, nchunks=nchunks, lam=lam, ratio=ratio, itermax=itermax)
                 self.sig_val = sigma_val
