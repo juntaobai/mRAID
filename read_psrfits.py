@@ -187,7 +187,7 @@ class read_fits ():
 
                         size_gb = unpack_data.nbytes / (1024**3)
                         logger.debug ('Unpack array shape of beam{0}: {1}'.format(i, unpack_data.shape))
-                        logger.debug ('Unpack array size of beam{0}: {1}GB'.format(, size_gb))
+                        logger.debug ('Unpack array size of beam{0}: {1}GB'.format(i, size_gb))
 
                         # only use total intensity
                         if self.npol != 1:
