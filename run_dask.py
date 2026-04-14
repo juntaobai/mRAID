@@ -111,7 +111,7 @@ if __name__ == "__main__":
     # 1. Initialize a Dask cluster with exactly ncpus workers
     # Using threads_per_worker=1 is usually safest for heavy numpy/HDF5 I/O tasks 
     # to avoid the Python Global Interpreter Lock (GIL) and HDF5 concurrency issues.
-    cluster = LocalCluster(n_workers=ncpus, threads_per_worker=1)
+    cluster = LocalCluster(n_workers=ncpus, threads_per_worker=1, processes=True)
     client = Client(cluster)
 
     #print(f"Dask Dashboard accessible at: {client.dashboard_link}")
