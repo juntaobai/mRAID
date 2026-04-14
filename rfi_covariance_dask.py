@@ -36,7 +36,7 @@ class ccm (read_fits):
         def __init__(self, filenames, sub0=0, sub1=0, freq0=0, freq1=0, sigma_val=3, sigma_vec=1, 
             downsamp=1, normal_base_start=2600, normal_base_end=2800, no_arpls=False, lam=1e3, ratio=0.005, itermax=35):
                 logger.info ('Initialising a multi-beam object\n')
-                super().__init__(filenames=filenames, sub0=sub0, sub1=sub1, freq0=freq0, freq1=freq1, downsamp=downsamp, no_arpls=no_arpls, lam=lam, ratio=ratio, itermax=itermax)
+                super().__init__(filenames=filenames, sub0=sub0, sub1=sub1, freq0=freq0, freq1=freq1, downsamp=downsamp, no_arpls=no_arpls, nchunks=nchunks, lam=lam, ratio=ratio, itermax=itermax)
                 self.sig_val = sigma_val
                 self.sig_vec = sigma_vec
                 self.normal_base_start = normal_base_start
@@ -66,7 +66,7 @@ class ccm (read_fits):
 
         def cal_ccm_einsum(self):
                 logger.debug ('Calculating CCM using DASK...')
-                dask_array = da.from_array(self.nbarray, chunks=(-1, -1, 16))
+                dask_array = da.from_array(self.nbarray, chunks=(-1, -1, self.nchunks))
                 # If self.nbarray is a numpy array, convert it first:
                 # dask_array = da.from_array(self.nbarray, chunks=(-1, -1, 10)) 
                 

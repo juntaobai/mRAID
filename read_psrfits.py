@@ -186,8 +186,8 @@ class read_fits ():
                                 unpack_data = data
 
                         size_gb = unpack_data.nbytes / (1024**3)
-                        logger.debug ('Unpack array shape: {0}'.format(unpack_data.shape))
-                        logger.debug ('Unpack array size: {0}GB'.format(size_gb))
+                        logger.debug ('Unpack array shape of beam{0}: {1}'.format(i, unpack_data.shape))
+                        logger.debug ('Unpack array size of beam{0}: {1}GB'.format(, size_gb))
 
                         # only use total intensity
                         if self.npol != 1:
@@ -199,8 +199,8 @@ class read_fits ():
                         output_data = output_data.astype(np.float16)
 
                         size_gb = output_data.nbytes / (1024**3)
-                        logger.debug ('Output array shape: {0}'.format(output_data.shape))
-                        logger.debug ('Output array size: {0}GB'.format(size_gb))
+                        logger.debug ('Output array shape of beam{0}: {1}'.format(i, output_data.shape))
+                        logger.debug ('Output array size {0}: {1}GB'.format(i, size_gb))
 
                         if self.no_arpls is False:
                                 logger.info ('Fitting baseline with ArPLS...')
@@ -211,7 +211,7 @@ class read_fits ():
                         #############################################################
                         self.nbarray[i] = output_data
                         size_gb = self.nbarray.nbytes / (1024**3)
-                        logger.debug ('Size of nbarray {0}GB'.format(size_gb))
+                        #logger.debug ('Size of nbarray {0}GB'.format(size_gb))
 
                         #print ('Shape of the unpacked data: {0}\n'.format(self.nbarray[i].shape))
                         #np.save('raw_data_ArPLS.npy', self.nbarray )
