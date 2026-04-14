@@ -20,7 +20,7 @@ from scipy import sparse
 from scipy.sparse.linalg import spsolve
 import math
 import dask.array as da
-from dask.distributed import client
+from dask.distributed import Client
 
 import logging
 logger = logging.getLogger(__name__)
