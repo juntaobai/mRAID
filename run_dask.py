@@ -28,7 +28,7 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    format="%(asctime)s - [PID %(process)d] - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.FileHandler("mRAID.log", mode='w'), # Save to file
         logging.StreamHandler()           # Also print to console
@@ -56,7 +56,8 @@ def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_e
         logger.info('Finished reading data...')
 
         mb_ccm.normalise()
-        mb_ccm.cal_ccm_einsum()
+        #mb_ccm.cal_ccm_einsum()
+        mb_ccm.cal_ccm()
         logger.info('Finished calculating CCM...')
         #print(np.amax(mb_ccm.ccm), np.amin(mb_ccm.ccm))
         #mb_ccm.plot_ccm(100)
@@ -137,6 +138,7 @@ if __name__ == "__main__":
             sub_start=start,
             sub_end=end,
             no_arpls=no_arpls
+            downsamp=downsamp
         )
         tasks.append(task)
 
