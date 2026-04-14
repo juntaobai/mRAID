@@ -113,7 +113,7 @@ if __name__ == "__main__":
     # This configuration asks Slurm for nodes. Adjust 'queue', 'cores', and 'memory' 
     # to match your HPC's specific partition rules.
     cluster = SLURMCluster(
-        account=od-207757
+        account=od-207757,
         cores=1,                        # One task per Slurm job
         memory='100GB',                 # Match your 100GB+ array needs
         walltime='02:00:00',
