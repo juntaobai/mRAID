@@ -72,6 +72,7 @@ def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_e
         root_logger.setLevel(logging.DEBUG)
 
         # --- Now all calls below this will log correctly ---
+        logger = logging.getLogger(__name__)
         logger.info("Task initialized.") # This works
 
         #print(f"[Task {i}] Processing subint {sub_start} to {sub_end}")
