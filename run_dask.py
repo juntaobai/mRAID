@@ -144,8 +144,6 @@ if __name__ == "__main__":
     cluster.scale(jobs=args.num_cpus)
     client = Client(cluster)
     
-    logger.info(f"Dask Dashboard link: {client.dashboard_link}")
-
     # 3. Create the lazy task list
     tasks = []
     for start in range(0, nsub, step):
@@ -165,9 +163,11 @@ if __name__ == "__main__":
         tasks.append(task)
 
     # 4. Execute everything across the HPC nodes
-    logger.info(f"Submitting {len(tasks)} tasks to Slurm via Dask...")
+    #logger.info(f"Submitting {len(tasks)} tasks to Slurm via Dask...")
+    print (f"Submitting {len(tasks)} tasks to Slurm via Dask...")
     results = dask.compute(*tasks)
     
-    logger.info("All tasks completed. Closing cluster.")
+    #logger.info("All tasks completed. Closing cluster.")
+    print ("All tasks completed. Closing cluster.")
     client.close()
     cluster.close()
