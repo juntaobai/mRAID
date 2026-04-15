@@ -26,17 +26,17 @@ from dask_jobqueue import SLURMCluster
 
 import logging
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - [PID %(process)d] - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("mRAID.log", mode='w'), # Save to file
-        logging.StreamHandler()           # Also print to console
-    ]
-)
+#logger = logging.getLogger(__name__)
+#logging.basicConfig(
+#    level=logging.DEBUG,
+#    format="%(asctime)s - [PID %(process)d] - %(name)s - %(levelname)s - %(message)s",
+#    handlers=[
+#        logging.FileHandler("mRAID.log", mode='w'), # Save to file
+#        logging.StreamHandler()           # Also print to console
+#    ]
+#)
 
-logging.info("A fresh start! This file was just overwritten.")
+#logging.info("A fresh start! This file was just overwritten.")
 
 
 def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_end=0, sigma_val=3, sigma_vec=1,
@@ -44,8 +44,24 @@ def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_e
                nchunks=64, lam=1e3, ratio=0.005, itermax=35):
         """Run mRAID on one chunk of data according to sub_start and sub_end """
 
+        # 1. Setup a unique logger for this specific process and task
+        # We name the log file based on the sub-integration range
+        log_filename = f"mRAID_task_{sub_start}_{sub_end}.log"
+        
+        worker_logger = logging.getLogger(f"worker_{sub_start}")
+        worker_logger.setLevel(logging.DEBUG)
+        
+        # Avoid adding multiple handlers if the worker is reused for another task
+        if not worker_logger.handlers:
+            fh = logging.FileHandler(log_filename, mode='w')
+            formatter = logging.Formatter("%(asctime)s - [PID %(process)d] - %(levelname)s - %(message)s")
+            fh.setFormatter(formatter)
+            worker_logger.addHandler(fh)
+
+        worker_logger.info(f"Worker started task for subints {sub_start} to {sub_end}")
+
         #print(f"[Task {i}] Processing subint {sub_start} to {sub_end}")
-        logger.info(f"Processing subint {sub_start} to {sub_end}")
+        #logger.info(f"Processing subint {sub_start} to {sub_end}")
 
         mb_ccm = ccm(filenames, sub_start, sub_end,
                      freq_start, freq_end,
@@ -90,8 +106,9 @@ if __name__ == "__main__":
     parser.add_argument('-arpls',       '--arpls_par',      nargs=3, default=[1e3, 0.005, 35], type=float)
     parser.add_argument('-o',           '--output_prefix',  required=True,                                 help='Output prefix for HDF5 files')
     parser.add_argument('-no_arpls',    '--no_arpls_par',   action='store_true',                           help='Turn off ArPLS')
-    parser.add_argument('-ncpus',       '--num_cpus',       default=5,  type=int,                          help='Number of CPUs/jobs')
-    parser.add_argument('-nchunks',     '--num_chunks',     default=64, type=int,                          help='Number of chunks for DASK unpacking and CCM calculation')
+    parser.add_argument('-ncpus',       '--num_cpus',       default=5,     type=int,                       help='Number of CPUs/jobs')
+    parser.add_argument('-nchunks',     '--num_chunks',     default=64,    type=int,                       help='Number of chunks for DASK unpacking and CCM calculation')
+    parser.add_argument('-time',        '--wall_time',      default='06',  type=str,                       help='Slurm wall time for each job')
 
     args = parser.parse_args()
 
@@ -108,6 +125,7 @@ if __name__ == "__main__":
     ncpus                = args.num_cpus
     nchunks              = args.num_chunks             # num_chunks is used for Dask within functions such as unpacking and cal_ccm; this is not used when calling Dask at higher level to avoid dask-within-dask
     normal_base_start, normal_base_end = args.normalise_base
+    wall_time            = args.wall_time
 
     # 1. Setup SLURMCluster
     # This configuration asks Slurm for nodes. Adjust 'queue', 'cores', and 'memory' 
@@ -116,7 +134,7 @@ if __name__ == "__main__":
         account='od-207757',
         cores=1,                        # One task per Slurm job
         memory='100GB',                 # Match your 100GB+ array needs
-        walltime='02:00:00',
+        walltime='{0}:00:00'.format(args.wall_time),
         # Crucial for NumPy/HDF5: ensure each worker is a separate process
         job_extra_directives=['--ntasks=1', '--cpus-per-task=1']
     )

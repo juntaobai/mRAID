@@ -70,7 +70,7 @@ class eig():
 
                 i = 0
                 for start in range(0, nsub, self.sub_step):
-                        end = min(start + self.sub_step - 1, nsub - 1)
+                        end = start + 1 if step == 1 else min(start + step - 1, nsub - 1)
                         hdf5_file = f"{self.hdf5_prefix}_{start}_{end}.h5"
                         logger.info ('Reading %s'%hdf5_file)
                         with h5py.File(hdf5_file, 'r') as hdf:
