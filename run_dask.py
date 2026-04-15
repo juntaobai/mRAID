@@ -26,17 +26,17 @@ from dask_jobqueue import SLURMCluster
 
 import logging
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - [PID %(process)d] - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("mRAID.log", mode='w'), # Save to file
-        logging.StreamHandler()           # Also print to console
-    ]
-)
-
-logging.info("A fresh start! This file was just overwritten.")
+#logger = logging.getLogger(__name__)
+#logging.basicConfig(
+#    level=logging.DEBUG,
+#    format="%(asctime)s - [PID %(process)d] - %(name)s - %(levelname)s - %(message)s",
+#    handlers=[
+#        logging.FileHandler("mRAID.log", mode='w'), # Save to file
+#        logging.StreamHandler()           # Also print to console
+#    ]
+#)
+#
+#logging.info("A fresh start! This file was just overwritten.")
 
 
 def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_end=0, sigma_val=3, sigma_vec=1,
@@ -44,24 +44,37 @@ def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_e
                nchunks=64, lam=1e3, ratio=0.005, itermax=35):
         """Run mRAID on one chunk of data according to sub_start and sub_end """
 
-        ## 1. Setup a unique logger for this specific process and task
-        ## We name the log file based on the sub-integration range
-        #log_filename = f"mRAID_task_{sub_start}_{sub_end}.log"
-        #
-        #worker_logger = logging.getLogger(f"worker_{sub_start}")
-        #worker_logger.setLevel(logging.DEBUG)
-        #
-        ## Avoid adding multiple handlers if the worker is reused for another task
-        #if not worker_logger.handlers:
-        #    fh = logging.FileHandler(log_filename, mode='w')
-        #    formatter = logging.Formatter("%(asctime)s - [PID %(process)d] - %(levelname)s - %(message)s")
-        #    fh.setFormatter(formatter)
-        #    worker_logger.addHandler(fh)
+        # 1. Get the Root Logger
+        root_logger = logging.getLogger()
+        
+        # 2. Clear any existing handlers (important for Dask worker reuse)
+        # This prevents the same log lines from printing 5 times if a worker runs 5 tasks.
+        for handler in root_logger.handlers[:]:
+            root_logger.removeHandler(handler)
+            
+        # 3. Define the format
+        formatter = logging.Formatter(
+            f"%(asctime)s - [CHUNK {sub_start}-{sub_end}] - [PID %(process)d] - %(levelname)s - %(message)s"
+        )
 
-        #worker_logger.info(f"Worker started task for subints {sub_start} to {sub_end}")
+        # 4. Add a StreamHandler (to feed Slurm --output)
+        sh = logging.StreamHandler(sys.stdout)
+        sh.setFormatter(formatter)
+        root_logger.addHandler(sh)
+
+        # 5. Optional: Add a FileHandler for this specific chunk
+        fh = logging.FileHandler(f"mRAID_{sub_start}_{sub_end}.log", mode='w')
+        fh.setFormatter(formatter)
+        root_logger.addHandler(fh)
+
+        # Set the level
+        root_logger.setLevel(logging.DEBUG)
+
+        # --- Now all calls below this will log correctly ---
+        logger.info("Task initialized.") # This works
 
         #print(f"[Task {i}] Processing subint {sub_start} to {sub_end}")
-        logger.info(f"Processing subint {sub_start} to {sub_end}")
+        #logger.info(f"Processing subint {sub_start} to {sub_end}")
 
         mb_ccm = ccm(filenames, sub_start, sub_end,
                      freq_start, freq_end,

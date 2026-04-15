@@ -87,7 +87,7 @@ class eig():
                 return a * np.exp(-(x - mean) ** 2 / (2 * sigma ** 2))
             
         def plot_eigval (self):
-                logger.info('eigval_shape:', (self.eigval_array[:,:]).shape)
+                logger.info('eigval_shape: {0}'.format(self.eigval_array[:,:].shape))
                 plt.clf()
                 fig = plt.figure(figsize=(8,6))
                 ax = plt.subplot(111)
@@ -129,8 +129,8 @@ class eig():
                 self.eigval_array[:,:] = ma.masked_less(self.eigval_array[:,:], popt[1]-self.sig_val*popt[2] )
                 nchan_zap = np.ma.count_masked(self.eigval_array)
 
-                logger.debug('sigma:',popt[2])
-                logger.debug("nchan_zap:", nchan_zap)
+                logger.debug('sigma: {0}'.format(popt[2]))
+                logger.debug("nchan_zap: {0}".format(nchan_zap))
                 
                 nchan_zap = np.ma.count_masked(self.eigval_array)
 
@@ -155,8 +155,8 @@ class eig():
                     self.eigval_array[:,:] = ma.masked_less(self.eigval_array[:,:], popt[1]-self.sig_val*popt[2] )
                     nchan_zap = np.ma.count_masked(self.eigval_array)
 
-                    logger.debug(count, 'sigma:',popt[2])
-                    logger.debug("nchan_zap:", nchan_zap)
+                    logger.debug('{0}, sigma: {1}'.format(count, popt[2]))
+                    logger.debug("nchan_zap: {0}".format(nchan_zap))
 
                     count += 1
 
@@ -192,7 +192,7 @@ class eig():
                         std_list.append(np.abs(popt[2]))
                 evc_mean = np.array(mean_list)
                 evc_sigma = np.array(std_list)
-                logger.debug("Mean and Sigma per beam:", evc_mean, evc_sigma)
+                logger.debug("Mean and Sigma per beam: {0} {1}".format(evc_mean, evc_sigma))
                 return evc_mean, evc_sigma
             
 
@@ -233,7 +233,7 @@ class eig():
                         self.all_rfi_mask[:, self.ignorchan_start:self.ignorchan_end, :] = 1
                 self.all_rfi_mask = np.array(self.all_rfi_mask, dtype=bool)
                 np.save('rfi_mask.npy', self.all_rfi_mask )
-                logger.info ("4:", np.array_equal(self.all_rfi_mask[:,:,0], self.all_rfi_mask[:,:,-1]))
+                logger.info ("4: {0} {1}".format(np.array_equal(self.all_rfi_mask[:,:,0], self.all_rfi_mask[:,:,-1])))
 
 
         def plot_result (self, xtick):
@@ -261,7 +261,7 @@ class eig():
                         num_zeros = np.count_nonzero(self.all_rfi_mask[:,:,beam_id] == 0)
                         num_ones = np.count_nonzero(self.all_rfi_mask[:,:,beam_id] == 1)
                         countt = (self.nchan-self.use_nchan)*self.npart
-                        logger.info('Plotting eigvec...', beam_id, num_zeros, num_ones, num_zeros + num_ones, (num_zeros - countt)/ (num_zeros + num_ones - countt) )
+                        logger.info('Plotting eigvec... {0} {1} {2} {3} {4}'.format(beam_id, num_zeros, num_ones, num_zeros + num_ones, (num_zeros - countt)/ (num_zeros + num_ones - countt) ))
                         i += 1
 
                 plt.savefig(f'{self.plot_prefix}_plot_eigvec_masked.png')
@@ -274,7 +274,7 @@ class eig():
                 mask = np.where(mask == 0, 1, 0)
 
                 for beam_id in range(self.nbeam):
-                        logger.info('basename:', basename[beam_id])
+                        logger.info('basename: {0}'.format(basename[beam_id]))
                         hdu = fits.open(basename[beam_id])
                         time_sig  = np.float64(10.0)
                         freq_sig  = np.float64(4.0)
