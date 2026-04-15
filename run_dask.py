@@ -26,17 +26,17 @@ from dask_jobqueue import SLURMCluster
 
 import logging
 
-#logger = logging.getLogger(__name__)
-#logging.basicConfig(
-#    level=logging.DEBUG,
-#    format="%(asctime)s - [PID %(process)d] - %(name)s - %(levelname)s - %(message)s",
-#    handlers=[
-#        logging.FileHandler("mRAID.log", mode='w'), # Save to file
-#        logging.StreamHandler()           # Also print to console
-#    ]
-#)
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - [PID %(process)d] - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("mRAID.log", mode='w'), # Save to file
+        logging.StreamHandler()           # Also print to console
+    ]
+)
 
-#logging.info("A fresh start! This file was just overwritten.")
+logging.info("A fresh start! This file was just overwritten.")
 
 
 def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_end=0, sigma_val=3, sigma_vec=1,
@@ -44,24 +44,24 @@ def run_mRAID (filenames, out_file, sub_start=0, sub_end=0, freq_start=0, freq_e
                nchunks=64, lam=1e3, ratio=0.005, itermax=35):
         """Run mRAID on one chunk of data according to sub_start and sub_end """
 
-        # 1. Setup a unique logger for this specific process and task
-        # We name the log file based on the sub-integration range
-        log_filename = f"mRAID_task_{sub_start}_{sub_end}.log"
-        
-        worker_logger = logging.getLogger(f"worker_{sub_start}")
-        worker_logger.setLevel(logging.DEBUG)
-        
-        # Avoid adding multiple handlers if the worker is reused for another task
-        if not worker_logger.handlers:
-            fh = logging.FileHandler(log_filename, mode='w')
-            formatter = logging.Formatter("%(asctime)s - [PID %(process)d] - %(levelname)s - %(message)s")
-            fh.setFormatter(formatter)
-            worker_logger.addHandler(fh)
+        ## 1. Setup a unique logger for this specific process and task
+        ## We name the log file based on the sub-integration range
+        #log_filename = f"mRAID_task_{sub_start}_{sub_end}.log"
+        #
+        #worker_logger = logging.getLogger(f"worker_{sub_start}")
+        #worker_logger.setLevel(logging.DEBUG)
+        #
+        ## Avoid adding multiple handlers if the worker is reused for another task
+        #if not worker_logger.handlers:
+        #    fh = logging.FileHandler(log_filename, mode='w')
+        #    formatter = logging.Formatter("%(asctime)s - [PID %(process)d] - %(levelname)s - %(message)s")
+        #    fh.setFormatter(formatter)
+        #    worker_logger.addHandler(fh)
 
-        worker_logger.info(f"Worker started task for subints {sub_start} to {sub_end}")
+        #worker_logger.info(f"Worker started task for subints {sub_start} to {sub_end}")
 
         #print(f"[Task {i}] Processing subint {sub_start} to {sub_end}")
-        #logger.info(f"Processing subint {sub_start} to {sub_end}")
+        logger.info(f"Processing subint {sub_start} to {sub_end}")
 
         mb_ccm = ccm(filenames, sub_start, sub_end,
                      freq_start, freq_end,
