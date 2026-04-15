@@ -54,15 +54,15 @@ class ccm (read_fits):
                 for i in range(self.nbeam):
                         #std = np.std(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])
                         #mean = np.mean(self.nbarray[i,:,self.normal_base_start:self.normal_base_end])
-                        std = np.std(self.nbarray[i,:,normal_base_chn0:normal_base_chn1])
-                        mean = np.mean(self.nbarray[i,:,normal_base_chn0:normal_base_chn1])
+                        std  = np.std(self.nbarray[i,:,normal_base_chn0:normal_base_chn1], dtype=np.float64)
+                        mean = np.mean(self.nbarray[i,:,normal_base_chn0:normal_base_chn1], dtype=np.float64)
                         self.nbarray[i,:,:] = (self.nbarray[i,:,:] - mean)/std
 
         def cal_ccm (self):
                 ###### This function is used when calling Dask at higher level 
                 self.ccm = np.empty((self.use_nchan, self.nbeam, self.nbeam), dtype=np.float64)
                 for i in range(self.use_nchan):
-                        data_slice = self.nbarray[:, :, i]  
+                        data_slice = self.nbarray[:, :, i].astype(np.float64)  
                         self.ccm[i] = np.dot(data_slice, data_slice.T) 
 
         def cal_ccm_einsum(self):
