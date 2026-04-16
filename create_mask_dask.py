@@ -233,7 +233,7 @@ class eig():
                         self.all_rfi_mask[:, self.ignorchan_start:self.ignorchan_end, :] = 1
                 self.all_rfi_mask = np.array(self.all_rfi_mask, dtype=bool)
                 np.save('rfi_mask.npy', self.all_rfi_mask )
-                logger.info ("4: {0} {1}".format(np.array_equal(self.all_rfi_mask[:,:,0], self.all_rfi_mask[:,:,-1])))
+                logger.info ("4: {0}".format(np.array_equal(self.all_rfi_mask[:,:,0], self.all_rfi_mask[:,:,-1])))
 
 
         def plot_result (self, xtick):
