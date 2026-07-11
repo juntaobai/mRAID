@@ -121,9 +121,10 @@ if __name__ == "__main__":
     parser.add_argument('-arpls',       '--arpls_par',      nargs=3, default=[1e3, 0.005, 35], type=float)
     parser.add_argument('-o',           '--output_prefix',  required=True,                                 help='Output prefix for HDF5 files')
     parser.add_argument('-no_arpls',    '--no_arpls_par',   action='store_true',                           help='Turn off ArPLS')
-    parser.add_argument('-ncpus',       '--num_cpus',       default=5,     type=int,                       help='Number of CPUs/jobs')
-    parser.add_argument('-nchunks',     '--num_chunks',     default=64,    type=int,                       help='Number of chunks for DASK unpacking and CCM calculation')
-    parser.add_argument('-time',        '--wall_time',      default='06',  type=str,                       help='Slurm wall time for each job')
+    parser.add_argument('-ncpus',       '--num_cpus',       default=5,            type=int,                help='Number of CPUs/jobs')
+    parser.add_argument('-nchunks',     '--num_chunks',     default=64,           type=int,                help='Number of chunks for DASK unpacking and CCM calculation')
+    parser.add_argument('-time',        '--wall_time',      default='06',         type=str,                help='Slurm wall time for each job')
+    parser.add_argument('-od',          '--od_number',      default='od-241688',  type=str,                help='Slurm account')
 
     args = parser.parse_args()
 
@@ -141,12 +142,13 @@ if __name__ == "__main__":
     nchunks              = args.num_chunks             # num_chunks is used for Dask within functions such as unpacking and cal_ccm; this is not used when calling Dask at higher level to avoid dask-within-dask
     normal_base_start, normal_base_end = args.normalise_base
     wall_time            = args.wall_time
+    od                   = args.od_number
 
     # 1. Setup SLURMCluster
     # This configuration asks Slurm for nodes. Adjust 'queue', 'cores', and 'memory' 
     # to match your HPC's specific partition rules.
     cluster = SLURMCluster(
-        account='od-207757',
+        account=args.od_number,
         cores=1,                        # One task per Slurm job
         memory='100GB',                 # Match your 100GB+ array needs
         walltime='{0}:00:00'.format(args.wall_time),
