@@ -116,7 +116,8 @@ class read_fits ():
                                 data = np.reshape(data, (self.nsub*self.nsblk, int(self.nchan/(8/self.nbits))))
                         else:
                                 data = np.squeeze(tbdata['DATA'][self.sub0:self.sub1, :, :, :])
-                                data = np.reshape(data, ((self.sub1-self.sub0)*self.nsblk, self.npol, int(self.nchan/(8/self.nbits))))   
+                                data = np.reshape(data, ((self.sub1-self.sub0)*self.nsblk, self.npol, int(self.nchan/(8/self.nbits))))
+                                data = data.astype(np.float64)
                                 data = (data[:,0,:]+data[:,1,:]).squeeze()  
                                 data = data[:, self.freq_mask]
                                 data = data.reshape(int((self.sub1-self.sub0)*self.nsblk/self.downsamp), self.downsamp, self.use_nchan).mean(axis=1)
