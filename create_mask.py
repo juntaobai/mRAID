@@ -241,16 +241,16 @@ class eig():
                         hdu = fits.open(basename[beam_id])
                         time_sig=np.float64(10.0)
                         freq_sig=np.float64(4.0)
-                        tsamp = hdu[1].header['TBIN']
+                        tsamp = hdu['SUBINT'].header['TBIN']
                         secperday = 3600 * 24
-                        samppersubint = int(hdu[1].header['NSBLK'])
-                        subintoffset = hdu[1].header['NSUBOFFS']
-                        MJD = "%.14f" % (Decimal(hdu[0].header['STT_IMJD']) + Decimal(hdu[0].header['STT_SMJD'] + hdu[0].header['STT_OFFS'])/secperday)
+                        samppersubint = int(hdu['SUBINT'].header['NSBLK'])
+                        subintoffset = hdu['SUBINT'].header['NSUBOFFS']
+                        MJD = "%.14f" % (Decimal(hdu['PRIMARY'].header['STT_IMJD']) + Decimal(hdu['PRIMARY'].header['STT_SMJD'] + hdu['PRIMARY'].header['STT_OFFS'])/secperday)
                         MJD = np.float64(MJD)
-                        lofreq = hdu[0].header['obsfreq'] - hdu[0].header['obsbw']/2
+                        lofreq = hdu['PRIMARY'].header['obsfreq'] - hdu['PRIMARY'].header['obsbw']/2
                         lofreq = np.float64(lofreq)
-                        df = np.float64(hdu[1].header['chan_bw'])
-                        nchan = np.int32(hdu[1].header['nchan'])
+                        df = np.float64(hdu['SUBINT'].header['chan_bw'])
+                        nchan = np.int32(hdu['SUBINT'].header['nchan'])
                         nint = np.int32(self.npart)
                         ptsperint = samppersubint * self.nsub / self.sub_step
                         ptsperint = np.int32(ptsperint)
@@ -308,8 +308,8 @@ class eig():
                 for beam_id in range(self.nbeam):
                         #print('basename:', basename[beam_id])
                         hdu = fits.open(basename[beam_id])
-                        nchan = np.int32(hdu[1].header['nchan'])
-                        samppersubint = int(hdu[1].header['NSBLK'])
+                        nchan = np.int32(hdu['SUBINT'].header['nchan'])
+                        samppersubint = int(hdu['SUBINT'].header['NSBLK'])
                         nint = np.int32(self.npart)
                         ptsperint = samppersubint * self.nsub / self.sub_step
                         ptsperint = np.int32(ptsperint)

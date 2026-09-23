@@ -282,9 +282,9 @@ class eig():
                         secperday = 3600 * 24
                         samppersubint = int(hdu['SUBINT'].header['NSBLK'])
                         subintoffset  = hdu['SUBINT'].header['NSUBOFFS']
-                        MJD = "%.14f" % (Decimal(hdu[0].header['STT_IMJD']) + Decimal(hdu[0].header['STT_SMJD'] + hdu[0].header['STT_OFFS'])/secperday)
+                        MJD = "%.14f" % (Decimal(hdu['PRIMARY'].header['STT_IMJD']) + Decimal(hdu['PRIMARY'].header['STT_SMJD'] + hdu['PRIMARY'].header['STT_OFFS'])/secperday)
                         MJD = np.float64(MJD)
-                        lofreq = hdu[0].header['obsfreq'] - hdu[0].header['obsbw']/2
+                        lofreq = hdu['PRIMARY'].header['obsfreq'] - hdu['PRIMARY'].header['obsbw']/2
                         lofreq = np.float64(lofreq)
                         df     = np.float64(hdu['SUBINT'].header['chan_bw'])
                         nchan  = np.int32(hdu['SUBINT'].header['nchan'])
